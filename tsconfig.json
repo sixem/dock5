@@ -10,10 +10,12 @@
     "isolatedModules": true,
     "noEmit": true,
     "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
     "jsx": "react-jsx",
-    "jsxImportSource": "preact",
-    "types": ["vite/client"]
+    "jsxImportSource": "preact"
   },
-  "include": ["src", "vite.config.ts"]
+  "include": ["src", "vite.config.ts", "vitest.config.ts"]
 }
-

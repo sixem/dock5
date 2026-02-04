@@ -1,10 +1,14 @@
 // Vite config for the SPA + test runner.
+import { fileURLToPath } from 'node:url';
+
 import preact from '@preact/preset-vite';
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [preact()],
-  test: {
-    environment: 'jsdom',
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
   },
 });

@@ -1,11 +1,68 @@
 {
-  "generatedAt": "placeholder",
-  "inputDir": "placeholder",
+  "inputDir": "examples/docs",
   "pages": [
     {
       "slug": "/",
       "title": "Welcome",
-      "markdown": "# Welcome\n\nRun `pnpm dev` to generate docs from `examples/docs/` and start the dev server.\n"
+      "html": "<p>This is the demo docs bundle shipped in <code>examples/docs/</code>.</p>\n<h2 id=\"what-this-repo-is\">What this repo is</h2>\n<ul><li>A <strong>modern, static docs engine</strong> (no backend).</li><li>A <strong>beautiful SPA shell</strong> with theming.</li><li>A <strong>build-time generator</strong> that turns a docs folder into assets the SPA consumes.</li></ul>\n<h2 id=\"next\">Next</h2>\n<p>Head to <strong>Getting started</strong> to run the demo locally.</p>",
+      "headings": [
+        {
+          "depth": 2,
+          "id": "what-this-repo-is",
+          "text": "What this repo is"
+        },
+        {
+          "depth": 2,
+          "id": "next",
+          "text": "Next"
+        }
+      ]
+    },
+    {
+      "slug": "/getting-started",
+      "title": "Getting started",
+      "html": "<h2 id=\"requirements\">Requirements</h2>\n<ul><li>Node 20+</li><li>pnpm</li></ul>\n<h2 id=\"run\">Run</h2>\n<pre><code class=\"language-sh\">pnpm install\npnpm dev</code></pre>\n<h2 id=\"override-the-docs-folder\">Override the docs folder</h2>\n<pre><code class=\"language-sh\">pnpm dev -- --docs ./path/to/my/docs</code></pre>",
+      "headings": [
+        {
+          "depth": 2,
+          "id": "requirements",
+          "text": "Requirements"
+        },
+        {
+          "depth": 2,
+          "id": "run",
+          "text": "Run"
+        },
+        {
+          "depth": 2,
+          "id": "override-the-docs-folder",
+          "text": "Override the docs folder"
+        }
+      ]
+    },
+    {
+      "slug": "/guides/markdown",
+      "title": "Markdown",
+      "html": "<p>We default to GFM + frontmatter, with raw HTML disabled/sanitized by default.</p>\n<h2 id=\"why\">Why</h2>\n<ul><li>Most docs are copy/pasted from issues, wikis, or user input.</li><li>Treating Markdown as untrusted avoids surprises.</li></ul>",
+      "headings": [
+        {
+          "depth": 2,
+          "id": "why",
+          "text": "Why"
+        }
+      ]
+    },
+    {
+      "slug": "/guides/theming",
+      "title": "Theming",
+      "html": "<p>The engine is <strong>CSS-variables-first</strong> so themes can override tokens without a rebuild.</p>\n<h2 id=\"principles\">Principles</h2>\n<ul><li>Theme tokens live in <code>:root</code> variables.</li><li>Dark/light are just different token sets.</li><li>Components should consume tokens (not hardcode colors).</li></ul>",
+      "headings": [
+        {
+          "depth": 2,
+          "id": "principles",
+          "text": "Principles"
+        }
+      ]
     }
   ]
 }

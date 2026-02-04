@@ -27,5 +27,8 @@ Thumbs.db
 .env*
 !.env.example
 
-# Misc
+# Local scratch / temp files
+_tmp_*
+
+# Misc (don't remove)
 /AGENTS.md

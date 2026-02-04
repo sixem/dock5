@@ -1,0 +1,11 @@
+{
+  "generatedAt": "placeholder",
+  "inputDir": "placeholder",
+  "pages": [
+    {
+      "slug": "/",
+      "title": "Welcome",
+      "markdown": "# Welcome\n\nRun `pnpm dev` to generate docs from `examples/docs/` and start the dev server.\n"
+    }
+  ]
+}

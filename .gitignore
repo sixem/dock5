@@ -6,6 +6,7 @@ node_modules/
 dist/
 .vite/
 public/docs-assets/
+src/generated/docs.json
 
 # Logs & diagnostics
 npm-debug.log*

@@ -76,7 +76,13 @@ Defaults:
 - Input: `docs/` (when no `<docsDir>` is provided)
 - Output: `src/generated/docs.json`
 
-`src/generated/docs.json` is generated output; don't edit it by hand.
+`src/generated/docs.json` is generated output (gitignored); don't edit it by hand.
+
+If you previously committed it (or it contains output from testing another docs folder), untrack it once:
+
+```sh
+git rm --cached src/generated/docs.json
+```
 
 ## Docs conventions (current)
 

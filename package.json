@@ -11,10 +11,12 @@
     "build": "tsx scripts/site/build.ts",
     "preview": "pnpm exec vite preview",
     "generate": "tsx scripts/site/generate.ts",
+    "pretest": "pnpm generate",
     "test": "pnpm exec vitest run",
     "test:watch": "pnpm exec vitest",
     "lint": "pnpm exec biome check .",
     "format": "pnpm exec biome format --write .",
+    "pretypecheck": "pnpm generate",
     "typecheck": "pnpm exec tsc --noEmit"
   },
   "dependencies": {

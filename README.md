@@ -20,7 +20,7 @@ Dock5 is built to be both:
 - A reusable docs-to-SPA engine you can point at any Markdown folder.
 
 By default, dev mode generates docs from `docs/` and starts Vite. It also watches
-the docs folder and regenerates `src/generated/docs.json` when Markdown changes.
+the docs folder and regenerates the docs manifest when Markdown changes.
 
 ### Use a different docs folder
 
@@ -74,15 +74,7 @@ pnpm generate -- ./my-docs
 Defaults:
 
 - Input: `docs/` (when no `<docsDir>` is provided)
-- Output: `src/generated/docs.json`
-
-`src/generated/docs.json` is generated output (gitignored); don't edit it by hand.
-
-If you previously committed it (or it contains output from testing another docs folder), untrack it once:
-
-```sh
-git rm --cached src/generated/docs.json
-```
+- Output: a generated docs manifest (gitignored)
 
 ## Docs conventions (current)
 

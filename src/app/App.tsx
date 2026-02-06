@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 
 import { type DocsPage, docsManifest } from '@/docs/manifest';
+import { buildNavTree, collectAncestorKeys } from '@/docs/navTree';
 import { useHashLocation } from './routing/useHashLocation';
 
 type Theme = 'light' | 'dark';
@@ -29,12 +30,28 @@ export function App() {
     return map;
   }, []);
 
+  const navTree = useMemo(() => buildNavTree(docsManifest.pages), []);
+
   const [theme, setTheme] = useState<Theme>(() => loadTheme());
 
   useEffect(() => {
     applyTheme(theme);
     localStorage.setItem('dock5.theme', theme);
   }, [theme]);
+
+  const [expandedNav, setExpandedNav] = useState<Set<string>>(() => new Set());
+
+  useEffect(() => {
+    // Ensure the current page is visible in the tree by expanding its ancestors.
+    const keys = collectAncestorKeys(path);
+    if (keys.length === 0) return;
+
+    setExpandedNav((prev) => {
+      const next = new Set(prev);
+      for (const key of keys) next.add(key);
+      return next;
+    });
+  }, [path]);
 
   const currentPage = pagesBySlug.get(path) ?? pagesBySlug.get('/') ?? null;
 
@@ -47,6 +64,69 @@ export function App() {
       el?.scrollIntoView({ block: 'start' });
     });
   }, [currentPage?.slug, fragment]);
+
+  const toggleExpanded = (key: string) =>
+    setExpandedNav((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+
+  const renderNavNodes = (nodes: ReturnType<typeof buildNavTree>) =>
+    nodes.map((node) => {
+      const hasChildren = node.children.length > 0;
+      const isExpanded = hasChildren ? expandedNav.has(node.key) : false;
+      const isActive = node.page?.slug === path;
+      const isActiveAncestor =
+        !isActive && hasChildren && path.startsWith(`${node.key}/`);
+
+      const linkClass = isActive
+        ? 'nav__link nav__link--active'
+        : isActiveAncestor
+          ? 'nav__link nav__link--ancestor'
+          : 'nav__link';
+
+      const resolvedLinkClass = hasChildren
+        ? linkClass
+        : `${linkClass} nav__link--leaf`;
+
+      return (
+        <div key={node.key} class="nav__item">
+          <div class="nav__row">
+            {hasChildren ? (
+              <button
+                class="nav__toggle"
+                type="button"
+                aria-label={isExpanded ? 'Collapse section' : 'Expand section'}
+                aria-expanded={isExpanded}
+                onClick={() => toggleExpanded(node.key)}
+              >
+                <span class="nav__caret" aria-hidden="true" />
+              </button>
+            ) : null}
+
+            {node.page ? (
+              <a class={resolvedLinkClass} href={`#${node.page.slug}`}>
+                <span class="nav__pill">{node.title}</span>
+              </a>
+            ) : (
+              <button
+                class="nav__group"
+                type="button"
+                onClick={() => toggleExpanded(node.key)}
+              >
+                <span class="nav__pill">{node.title}</span>
+              </button>
+            )}
+          </div>
+
+          {hasChildren && isExpanded ? (
+            <div class="nav__children">{renderNavNodes(node.children)}</div>
+          ) : null}
+        </div>
+      );
+    });
 
   return (
     <div class="app">
@@ -71,42 +151,8 @@ export function App() {
         <aside class="sidebar">
           <div class="sidebar__section">
             <div class="sidebar__title">Pages</div>
-            <nav class="nav">
-              {docsManifest.pages.map((page) => (
-                <a
-                  key={page.slug}
-                  class={
-                    page.slug === path
-                      ? 'nav__link nav__link--active'
-                      : 'nav__link'
-                  }
-                  href={`#${page.slug}`}
-                >
-                  {page.title}
-                </a>
-              ))}
-            </nav>
+            <nav class="nav">{renderNavNodes(navTree)}</nav>
           </div>
-
-          {currentPage && currentPage.headings.length > 0 ? (
-            <div class="sidebar__section">
-              <div class="sidebar__title">On this page</div>
-              <nav class="toc">
-                {currentPage.headings.map((heading) => (
-                  <a
-                    key={heading.id}
-                    class="toc__link"
-                    href={`#${currentPage.slug}#${heading.id}`}
-                    style={{
-                      paddingLeft: `${Math.max(0, heading.depth - 2) * 12}px`,
-                    }}
-                  >
-                    {heading.text}
-                  </a>
-                ))}
-              </nav>
-            </div>
-          ) : null}
         </aside>
 
         <main class="content">
@@ -135,10 +181,6 @@ export function App() {
           )}
         </main>
       </div>
-
-      <footer class="footer">
-        <span>pages: {docsManifest.pages.length}</span>
-      </footer>
     </div>
   );
 }

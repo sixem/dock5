@@ -1,72 +1,18 @@
 // Build-time docs generator.
 //
 // This produces a JSON manifest consumed by the SPA with pre-rendered, safe HTML.
-import fs from 'node:fs/promises';
-import path from 'node:path';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { compileMarkdown } from './markdown/compile.mjs';
+import { parseGenerateArgs } from '../lib/args.ts';
+
+import type { HeadingEntry } from './markdown/compile.ts';
+import { compileMarkdown } from './markdown/compile.ts';
 
 const DEFAULT_OUT_FILE = path.join('src', 'generated', 'docs.json');
-
-const parseArgs = (argv) => {
-  const opts = {
-    inputDir: null,
-    outFile: DEFAULT_OUT_FILE,
-    base: null,
-    outDir: null,
-  };
-
-  const positional = [];
-
-  for (let i = 0; i < argv.length; i += 1) {
-    const arg = argv[i];
-
-    if (!arg) continue;
-    if (arg === '--help' || arg === '-h')
-      return { opts, positional, help: true };
-
-    if (arg === '--input' || arg === '--docs') {
-      opts.inputDir = argv[i + 1] ?? null;
-      i += 1;
-      continue;
-    }
-
-    if (arg === '--outFile') {
-      opts.outFile = argv[i + 1] ?? DEFAULT_OUT_FILE;
-      i += 1;
-      continue;
-    }
-
-    if (arg === '--outDir') {
-      opts.outDir = argv[i + 1] ?? null;
-      i += 1;
-      continue;
-    }
-
-    if (arg === '--base') {
-      opts.base = argv[i + 1] ?? null;
-      i += 1;
-      continue;
-    }
-
-    if (arg.startsWith('-')) {
-      throw new Error(`Unknown flag: ${arg}`);
-    }
-
-    positional.push(arg);
-  }
-
-  if (!opts.inputDir && positional.length > 0) {
-    opts.inputDir = positional[0];
-  }
-
-  if (!opts.inputDir) {
-    opts.inputDir = 'docs';
-  }
-
-  return { opts, positional, help: false };
-};
+const DEFAULT_ASSETS_DIR = path.join('public', 'docs-assets');
+const DEFAULT_ASSETS_BASE = '/docs-assets';
 
 const printHelp = () => {
   // Keep this short; full docs can live in README/docs later.
@@ -83,12 +29,14 @@ const printHelp = () => {
       '  --input, --docs   Docs folder (defaults to "docs")',
       '  --outFile         Output manifest file (defaults to src/generated/docs.json)',
       '  --outDir          Reserved (future: static bundle output dir)',
+      '  --assetsDir       Copy non-Markdown files here (defaults to public/docs-assets)',
+      '  --assetsBase      URL prefix for copied assets (defaults to /docs-assets)',
       '  --base            Reserved (future: base URL, e.g. for GitHub Pages)',
     ].join('\n'),
   );
 };
 
-const extractTitle = (markdown, fallback) => {
+export const extractTitle = (markdown: string, fallback: string) => {
   // Frontmatter title:
   // ---
   // title: Hello
@@ -108,6 +56,16 @@ const extractTitle = (markdown, fallback) => {
     }
   }
 
+  // HTML <h1> (common in docs copied from READMEs).
+  const htmlH1 = markdown.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i);
+  if (htmlH1?.[1]) {
+    const text = htmlH1[1]
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (text) return text;
+  }
+
   // First H1.
   const h1 = markdown.match(/^#\s+(.+?)\s*$/m);
   if (h1?.[1]) return h1[1].trim();
@@ -115,13 +73,13 @@ const extractTitle = (markdown, fallback) => {
   return fallback;
 };
 
-const humanizeFromFilename = (fileName) => {
+const humanizeFromFilename = (fileName: string) => {
   const base = fileName.replace(/\.md$/i, '');
   const spaced = base.replace(/[-_]+/g, ' ');
   return spaced.length > 0 ? spaced[0].toUpperCase() + spaced.slice(1) : base;
 };
 
-const toSlug = (relativePath) => {
+const toSlug = (relativePath: string) => {
   const withForwardSlashes = relativePath.split(path.sep).join('/');
   const withoutExt = withForwardSlashes.replace(/\.md$/i, '');
 
@@ -140,11 +98,11 @@ const toSlug = (relativePath) => {
   return raw.endsWith('/') ? raw.slice(0, -1) : raw;
 };
 
-const listMarkdownFiles = async (dir) => {
-  const results = [];
+const listMarkdownFiles = async (dir: string) => {
+  const results: string[] = [];
   const skipDirs = new Set(['node_modules', '.git', 'dist', '.vite']);
 
-  const walk = async (current) => {
+  const walk = async (current: string) => {
     const entries = await fs.readdir(current, { withFileTypes: true });
     for (const entry of entries) {
       if (entry.name.startsWith('.')) continue;
@@ -166,17 +124,71 @@ const listMarkdownFiles = async (dir) => {
   return results;
 };
 
-const ensureDirForFile = async (filePath) => {
+const listAssetFiles = async (dir: string) => {
+  const results: string[] = [];
+  const skipDirs = new Set(['node_modules', '.git', 'dist', '.vite']);
+
+  const walk = async (current: string) => {
+    const entries = await fs.readdir(current, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.name.startsWith('.')) continue;
+
+      const fullPath = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        if (skipDirs.has(entry.name)) continue;
+        await walk(fullPath);
+        continue;
+      }
+
+      if (entry.isFile() && !entry.name.toLowerCase().endsWith('.md')) {
+        results.push(fullPath);
+      }
+    }
+  };
+
+  await walk(dir);
+  return results;
+};
+
+const ensureDirForFile = async (filePath: string) => {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
 };
 
-export const generate = async ({ inputDir, outFile }) => {
+type GeneratedPage = {
+  slug: string;
+  title: string;
+  html: string;
+  headings: HeadingEntry[];
+};
+
+export const generate = async ({
+  inputDir,
+  outFile,
+  assetsDir = DEFAULT_ASSETS_DIR,
+  assetsBase = DEFAULT_ASSETS_BASE,
+}: {
+  inputDir: string;
+  outFile: string;
+  assetsDir?: string | null;
+  assetsBase?: string | null;
+}) => {
   const absInputDir = path.resolve(inputDir);
   const absOutFile = path.resolve(outFile);
 
+  const absAssetsDir = assetsDir ? path.resolve(assetsDir) : null;
+  if (
+    absAssetsDir &&
+    (absAssetsDir === absInputDir ||
+      absAssetsDir.startsWith(`${absInputDir}${path.sep}`))
+  ) {
+    throw new Error(
+      `assetsDir must not be inside inputDir (avoids infinite recursion): ${assetsDir}`,
+    );
+  }
+
   const files = await listMarkdownFiles(absInputDir);
 
-  const pages = [];
+  const pages: GeneratedPage[] = [];
   for (const filePath of files) {
     const rel = path.relative(absInputDir, filePath);
     const markdown = await fs.readFile(filePath, 'utf8');
@@ -191,6 +203,7 @@ export const generate = async ({ inputDir, outFile }) => {
       currentRelPath: rel,
       currentSlug: slug,
       toSlug,
+      assetsBase,
     });
 
     pages.push({
@@ -208,6 +221,18 @@ export const generate = async ({ inputDir, outFile }) => {
     pages,
   };
 
+  let assetCount = 0;
+  if (absAssetsDir && assetsBase) {
+    const assets = await listAssetFiles(absInputDir);
+    for (const assetPath of assets) {
+      const rel = path.relative(absInputDir, assetPath);
+      const dest = path.join(absAssetsDir, rel);
+      await ensureDirForFile(dest);
+      await fs.copyFile(assetPath, dest);
+      assetCount += 1;
+    }
+  }
+
   await ensureDirForFile(absOutFile);
   await fs.writeFile(
     absOutFile,
@@ -215,20 +240,26 @@ export const generate = async ({ inputDir, outFile }) => {
     'utf8',
   );
 
-  return { absInputDir, absOutFile, pageCount: pages.length };
+  return { absInputDir, absOutFile, pageCount: pages.length, assetCount };
 };
 
-export const runCli = async (argv = process.argv.slice(2)) => {
-  const { opts, help } = parseArgs(argv);
+export const runCli = async (argv: string[] = process.argv.slice(2)) => {
+  const { opts, help } = parseGenerateArgs(argv, {
+    defaultOutFile: DEFAULT_OUT_FILE,
+    defaultAssetsDir: DEFAULT_ASSETS_DIR,
+    defaultAssetsBase: DEFAULT_ASSETS_BASE,
+  });
   if (help) return printHelp();
 
   const result = await generate({
-    inputDir: opts.inputDir,
+    inputDir: opts.inputDir ?? 'docs',
     outFile: opts.outFile,
+    assetsDir: opts.assetsDir,
+    assetsBase: opts.assetsBase,
   });
 
   console.log(
-    `Generated ${result.pageCount} page(s) from "${opts.inputDir}" -> ${path.relative(process.cwd(), result.absOutFile)}`,
+    `Generated ${result.pageCount} page(s) from "${opts.inputDir}" -> ${path.relative(process.cwd(), result.absOutFile)} (assets: ${result.assetCount})`,
   );
 };
 

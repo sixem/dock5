@@ -1,16 +1,55 @@
 // Dev runner that ensures docs are generated before starting Vite.
 
-import { parseDocsArgs } from '../lib/args.mjs';
-import { runPnpm } from '../lib/pnpm.mjs';
-import { watchDocsDir } from '../lib/watchDocs.mjs';
-import { generate } from './generate.mjs';
+import * as path from 'node:path';
+
+import { parseDocsArgs } from '../lib/args.ts';
+import { runPnpm } from '../lib/pnpm.ts';
+import { watchDocsDir } from '../lib/watchDocs.ts';
+import { generate } from './generate.ts';
 
 const OUT_FILE = 'src/generated/docs.json';
 
+const IGNORED_DIR_NAMES = new Set(['node_modules', '.git', 'dist', '.vite']);
+
+const shouldIgnoreWatchPath = (filePath: string) => {
+  const segments = filePath.split(/[\\/]+/g).filter(Boolean);
+  return segments.some(
+    (segment) => segment.startsWith('.') || IGNORED_DIR_NAMES.has(segment),
+  );
+};
+
+const printHelp = () => {
+  console.log(
+    [
+      'dock5 dev',
+      '',
+      'Usage:',
+      '  pnpm dev',
+      '  pnpm dev -- --docs <docsDir> [-- <vite args...>]',
+      '',
+      'Options:',
+      '  --docs, --input   Docs folder (defaults to "docs")',
+      '  -h, --help        Show this help',
+      '',
+      'Notes:',
+      '  Use "--" to pass args through pnpm scripts.',
+    ].join('\n'),
+  );
+};
+
 const main = async () => {
-  const { docsDir, rest: viteArgs } = parseDocsArgs(process.argv.slice(2), {
-    defaultDocsDir: 'examples/docs',
+  const {
+    docsDir,
+    rest: viteArgs,
+    help,
+  } = parseDocsArgs(process.argv.slice(2), {
+    defaultDocsDir: 'docs',
   });
+
+  if (help) {
+    printHelp();
+    return;
+  }
 
   const regenerate = async () => {
     try {
@@ -25,7 +64,7 @@ const main = async () => {
   // Initial generation before the dev server starts.
   await regenerate();
 
-  let debounceTimer = null;
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   let isRunning = false;
   let rerunRequested = false;
   let isClosed = false;
@@ -57,8 +96,18 @@ const main = async () => {
     onEvent: ({ eventType, filePath }) => {
       if (eventType === 'error') return;
 
-      // "rename" covers creates/deletes/renames; we regenerate to keep the page list accurate.
-      if (eventType === 'rename') return scheduleRegenerate();
+      if (filePath && shouldIgnoreWatchPath(filePath)) return;
+
+      if (eventType === 'rename') {
+        // "rename" covers creates/deletes/renames. We only need to regenerate when:
+        // - a Markdown file name changes (page list / slug changes)
+        // - a directory changes (may affect page structure)
+        if (!filePath) return scheduleRegenerate();
+
+        const ext = path.extname(filePath).toLowerCase();
+        if (ext === '.md' || ext === '') scheduleRegenerate();
+        return;
+      }
 
       // Only rebuild for Markdown edits.
       if (!filePath || filePath.toLowerCase().endsWith('.md')) {
@@ -79,7 +128,7 @@ const main = async () => {
   }
 };
 
-await main().catch((err) => {
+await main().catch((err: unknown) => {
   console.error(err instanceof Error ? err.message : err);
   process.exit(1);
 });

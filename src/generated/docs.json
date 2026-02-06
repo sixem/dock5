@@ -1,27 +1,65 @@
 {
-  "inputDir": "examples/docs",
+  "inputDir": "docs",
   "pages": [
     {
       "slug": "/",
-      "title": "Welcome",
-      "html": "<p>This is the demo docs bundle shipped in <code>examples/docs/</code>.</p>\n<h2 id=\"what-this-repo-is\">What this repo is</h2>\n<ul><li>A <strong>modern, static docs engine</strong> (no backend).</li><li>A <strong>beautiful SPA shell</strong> with theming.</li><li>A <strong>build-time generator</strong> that turns a docs folder into assets the SPA consumes.</li></ul>\n<h2 id=\"next\">Next</h2>\n<p>Head to <strong>Getting started</strong> to run the demo locally.</p>",
+      "title": "dock5",
+      "html": "<p>Dock5 is a modern, static Markdown documentation engine:</p>\n<ul><li>No backend required (static-host friendly).</li><li>Build-time generation: Markdown -&gt; safe HTML -&gt; a JSON manifest.</li><li>Fast SPA navigation with theming.</li></ul>\n<p>This <code>docs/</code> folder is the canonical documentation for the dock5 project, and it’s also the default docs input for <code>pnpm dev</code> in this repo.</p>",
+      "headings": []
+    },
+    {
+      "slug": "/authoring",
+      "title": "Authoring docs",
+      "html": "<h2 id=\"titles\">Titles</h2>\n<ul><li>Prefer <code>title:</code> frontmatter for the sidebar label.</li><li>Otherwise, the first <code># H1</code> is used as the title.</li><li>The first <code># H1</code> is treated as the title and is not rendered in the page body.</li></ul>\n<h2 id=\"links\">Links</h2>\n<ul><li>Relative links to other Markdown files are rewritten into dock5 routes.</li><li>Example: <code>[Theming](./guides/theming.md)</code> -&gt; navigates to that page</li><li><code>#anchors</code> are treated as in-page anchors and rewritten to include the page slug.</li></ul>\n<h2 id=\"safety-model-current\">Safety model (current)</h2>\n<ul><li>Raw HTML is treated as text (not executed).</li><li>URLs are sanitized (dangerous protocols are removed).</li></ul>",
       "headings": [
         {
           "depth": 2,
-          "id": "what-this-repo-is",
-          "text": "What this repo is"
+          "id": "titles",
+          "text": "Titles"
         },
         {
           "depth": 2,
-          "id": "next",
-          "text": "Next"
+          "id": "links",
+          "text": "Links"
+        },
+        {
+          "depth": 2,
+          "id": "safety-model-current",
+          "text": "Safety model (current)"
+        }
+      ]
+    },
+    {
+      "slug": "/config",
+      "title": "Configuration",
+      "html": "<p>dock5 is intentionally config-light right now.</p>\n<h2 id=\"inputs\">Inputs</h2>\n<ul><li>Generator input: a folder of Markdown files (default <code>docs/</code>).</li><li>Dev/build default input in this repo: <code>docs/</code>.</li></ul>\n<h2 id=\"outputs\">Outputs</h2>\n<ul><li>Generator output: <code>src/generated/docs.json</code> (manifest consumed by the SPA).</li><li>SPA output: a static bundle (e.g. <code>dist/</code>).</li></ul>\n<h2 id=\"cli-flags\">CLI flags</h2>\n<ul><li><code>--docs</code> / <code>--input &lt;dir&gt;</code>: choose docs directory</li><li><code>--outFile &lt;file&gt;</code>: choose output manifest path (default <code>src/generated/docs.json</code>)</li></ul>\n<h2 id=\"planned-not-implemented-yet\">Planned (not implemented yet)</h2>\n<ul><li>A tiny config file for ordering/titles/exclusions.</li><li>Optional “trusted docs” mode (raw HTML) with explicit documentation.</li></ul>",
+      "headings": [
+        {
+          "depth": 2,
+          "id": "inputs",
+          "text": "Inputs"
+        },
+        {
+          "depth": 2,
+          "id": "outputs",
+          "text": "Outputs"
+        },
+        {
+          "depth": 2,
+          "id": "cli-flags",
+          "text": "CLI flags"
+        },
+        {
+          "depth": 2,
+          "id": "planned-not-implemented-yet",
+          "text": "Planned (not implemented yet)"
         }
       ]
     },
     {
       "slug": "/getting-started",
       "title": "Getting started",
-      "html": "<h2 id=\"requirements\">Requirements</h2>\n<ul><li>Node 20+</li><li>pnpm</li></ul>\n<h2 id=\"run\">Run</h2>\n<pre><code class=\"language-sh\">pnpm install\npnpm dev</code></pre>\n<h2 id=\"override-the-docs-folder\">Override the docs folder</h2>\n<pre><code class=\"language-sh\">pnpm dev -- --docs ./path/to/my/docs</code></pre>",
+      "html": "<h2 id=\"requirements\">Requirements</h2>\n<ul><li>Node <code>20.19+</code> (or Node <code>22.12+</code>)</li><li>pnpm</li></ul>\n<h2 id=\"run-the-dock5-dev-site-this-repo\">Run the dock5 dev site (this repo)</h2>\n<pre><code class=\"language-sh\">pnpm install\npnpm dev</code></pre>\n<p>Dev mode:</p>\n<ul><li>Generates <code>src/generated/docs.json</code> from <code>docs/</code></li><li>Watches <code>docs/</code> and regenerates on Markdown changes</li><li>Starts Vite</li></ul>\n<h2 id=\"use-a-different-docs-folder\">Use a different docs folder</h2>\n<pre><code class=\"language-sh\">pnpm dev -- --docs ./path/to/my/docs</code></pre>\n<h2 id=\"build-and-preview\">Build and preview</h2>\n<pre><code class=\"language-sh\">pnpm build\npnpm preview</code></pre>",
       "headings": [
         {
           "depth": 2,
@@ -30,37 +68,104 @@
         },
         {
           "depth": 2,
-          "id": "run",
-          "text": "Run"
+          "id": "run-the-dock5-dev-site-this-repo",
+          "text": "Run the dock5 dev site (this repo)"
         },
         {
           "depth": 2,
-          "id": "override-the-docs-folder",
-          "text": "Override the docs folder"
+          "id": "use-a-different-docs-folder",
+          "text": "Use a different docs folder"
+        },
+        {
+          "depth": 2,
+          "id": "build-and-preview",
+          "text": "Build and preview"
         }
       ]
     },
     {
+      "slug": "/guides",
+      "title": "Guides",
+      "html": "<p>Practical guides for building and publishing docs with dock5.</p>\n<ul><li><a href=\"#/guides/markdown\">Markdown</a></li><li><a href=\"#/guides/theming\">Theming</a></li></ul>",
+      "headings": []
+    },
+    {
       "slug": "/guides/markdown",
       "title": "Markdown",
-      "html": "<p>We default to GFM + frontmatter, with raw HTML disabled/sanitized by default.</p>\n<h2 id=\"why\">Why</h2>\n<ul><li>Most docs are copy/pasted from issues, wikis, or user input.</li><li>Treating Markdown as untrusted avoids surprises.</li></ul>",
+      "html": "<h2 id=\"supported-mvp\">Supported (MVP)</h2>\n<ul><li>Headings (<code>#</code> .. <code>######</code>)</li><li>Lists (ordered/unordered)</li><li>Code fences (<code></code>`), with language class</li><li>Blockquotes</li><li>Tables (basic)</li><li>Links and images (URLs sanitized)</li></ul>\n<h2 id=\"tips\">Tips</h2>\n<ul><li>Use <code>title:</code> frontmatter to control sidebar labels.</li><li>Prefer relative links for internal navigation.</li></ul>",
       "headings": [
         {
           "depth": 2,
-          "id": "why",
-          "text": "Why"
+          "id": "supported-mvp",
+          "text": "Supported (MVP)"
+        },
+        {
+          "depth": 2,
+          "id": "tips",
+          "text": "Tips"
         }
       ]
     },
     {
       "slug": "/guides/theming",
       "title": "Theming",
-      "html": "<p>The engine is <strong>CSS-variables-first</strong> so themes can override tokens without a rebuild.</p>\n<h2 id=\"principles\">Principles</h2>\n<ul><li>Theme tokens live in <code>:root</code> variables.</li><li>Dark/light are just different token sets.</li><li>Components should consume tokens (not hardcode colors).</li></ul>",
+      "html": "<h2 id=\"change-the-look\">Change the look</h2>\n<ul><li>Edit CSS variables in <code>src/app/styles/index.css</code>.</li><li>Keep the theme tokens as the “public API” for custom themes.</li></ul>\n<h2 id=\"lightdark\">Light/dark</h2>\n<p>The app toggles <code>data-theme=&quot;light&quot;</code> on the <code>&lt;html&gt;</code> element. Use that selector to override tokens per theme.</p>",
       "headings": [
         {
           "depth": 2,
-          "id": "principles",
-          "text": "Principles"
+          "id": "change-the-look",
+          "text": "Change the look"
+        },
+        {
+          "depth": 2,
+          "id": "lightdark",
+          "text": "Light/dark"
+        }
+      ]
+    },
+    {
+      "slug": "/performance",
+      "title": "Performance",
+      "html": "<p>Dock5 is designed to feel like a fast SPA while still being static-host-friendly.</p>\n<h2 id=\"current-baseline\">Current baseline</h2>\n<ul><li>Pre-rendered HTML (no Markdown parsing at runtime)</li><li>Hash routing by default</li><li>Minimal dependencies for the MVP compiler</li></ul>\n<h2 id=\"next-ideas\">Next ideas</h2>\n<ul><li>Optional search index generation at build-time</li><li>Lazy-load heavier features (e.g. code highlighting)</li></ul>",
+      "headings": [
+        {
+          "depth": 2,
+          "id": "current-baseline",
+          "text": "Current baseline"
+        },
+        {
+          "depth": 2,
+          "id": "next-ideas",
+          "text": "Next ideas"
+        }
+      ]
+    },
+    {
+      "slug": "/processor",
+      "title": "Markdown processor",
+      "html": "<p>Dock5 currently ships a small in-repo Markdown compiler:</p>\n<ul><li><code>scripts/site/markdown/compile.ts</code></li></ul>\n<p>It supports a safe subset (MVP) and produces HTML at build-time.</p>\n<h2 id=\"goals\">Goals</h2>\n<ul><li>Full GFM via a standard pipeline later (remark/rehype).</li><li>Keep raw HTML disabled by default.</li><li>Keep URL sanitization on by default.</li></ul>",
+      "headings": [
+        {
+          "depth": 2,
+          "id": "goals",
+          "text": "Goals"
+        }
+      ]
+    },
+    {
+      "slug": "/themes",
+      "title": "Theming",
+      "html": "<p>Dock5’s UI is themed with CSS variables (design tokens) so it’s easy to override without rebuilding the docs content.</p>\n<h2 id=\"what-to-look-at\">What to look at</h2>\n<ul><li>Theme tokens: <code>src/app/styles/index.css</code> (<code>:root</code> variables)</li><li>Theme switching: <code>src/app/App.tsx</code></li></ul>\n<h2 id=\"approach\">Approach</h2>\n<ul><li>Keep tokens in CSS variables.</li><li>Keep components consuming tokens (no hardcoded colors in component styles).</li></ul>",
+      "headings": [
+        {
+          "depth": 2,
+          "id": "what-to-look-at",
+          "text": "What to look at"
+        },
+        {
+          "depth": 2,
+          "id": "approach",
+          "text": "Approach"
         }
       ]
     }

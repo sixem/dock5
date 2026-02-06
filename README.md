@@ -14,7 +14,7 @@ pnpm install
 pnpm dev
 ```
 
-By default, dev mode generates docs from `examples/docs/` and starts Vite.
+By default, dev mode generates docs from `docs/` and starts Vite.
 It also watches the docs folder and regenerates `src/generated/docs.json` when Markdown changes.
 
 ### Use a different docs folder
@@ -50,3 +50,8 @@ Defaults:
 - `title:` frontmatter is preferred; otherwise the first `# H1` is used as the page title.
 - The first `# H1` is treated as the page title and is not rendered in the page body.
 - `index.md` becomes `/` (or the folder route for nested indexes).
+
+## Assets (images, PDFs, etc.)
+
+By default, `pnpm generate` copies non-`.md` files from the docs input folder into `public/docs-assets/`,
+and rewrites relative links/images in generated HTML to `/docs-assets/...` so they work in dev/build.

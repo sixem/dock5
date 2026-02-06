@@ -11,10 +11,14 @@ export const normalizeAssetsBase = (value: string | null | undefined) => {
   const trimmed = value?.trim();
   if (!trimmed) return null;
 
-  const withLeadingSlash = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
-  return withLeadingSlash.endsWith('/')
-    ? withLeadingSlash.slice(0, -1)
-    : withLeadingSlash;
+  // Allow both absolute and relative bases.
+  //
+  // - Absolute: "/docs-assets" (hosted at site root)
+  // - Relative: "docs-assets" or "./docs-assets" (hosted relative to the built site)
+  //
+  // Relative is the most portable default for static hosting under sub-paths
+  // (e.g. https://example.com/docs/).
+  return trimmed.endsWith('/') ? trimmed.slice(0, -1) : trimmed;
 };
 
 const splitSearch = (raw: string): { path: string; search: string } => {

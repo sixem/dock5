@@ -12,90 +12,80 @@ export type ParsedDocsArgs = {
   help: boolean;
 };
 
-type DocsArgsToken =
-  | {
-      kind: 'option';
-      name: string;
-      rawName: string;
-      index: number;
-      value?: unknown;
-      inlineValue?: boolean;
-    }
-  | { kind: 'positional'; index: number; value: string }
-  | { kind: 'option-terminator'; index: number };
-
 export const parseDocsArgs = (
   argv: string[],
   { defaultDocsDir }: ParseDocsArgsOptions,
 ): ParsedDocsArgs => {
-  // We parse only a small set of "docs selection" flags and return the rest
-  // unchanged so dev/build can forward args to Vite.
+  // Parse only a small set of "docs selection" flags and return the rest so
+  // dev/build can forward args to Vite.
   //
-  // Example:
-  //   pnpm dev -- --docs ./my-docs -- --open
+  // Supported forms:
+  //   pnpm dev
+  //   pnpm dev -- ./path/to/docs
+  //   pnpm dev -- --docs ./path/to/docs
+  //   pnpm dev -- ./path/to/docs --open
+  //   pnpm dev -- --docs ./path/to/docs -- --open
   //
-  // Inside the script, argv becomes:
-  //   ["--docs","./my-docs","--","--open"]
-  //
-  // We must remove "--docs ./my-docs" but keep the "-- --open" segment intact.
-  let parsed: {
-    values: Record<string, unknown>;
-    tokens: DocsArgsToken[];
-  };
+  // Notes:
+  // - In pnpm scripts, the first "--" is required to pass args to the script.
+  // - A second "--" is optional and can be used to explicitly separate
+  //   dock5 args from Vite args. We must NOT forward that separator to Vite.
 
-  try {
-    parsed = parseArgs({
-      args: argv,
-      options: {
-        docs: { type: 'string' },
-        input: { type: 'string' },
-        help: { type: 'boolean', short: 'h' },
-      },
-      allowPositionals: true,
-      strict: false,
-      tokens: true,
-    }) as unknown as {
-      values: Record<string, unknown>;
-      tokens: DocsArgsToken[];
-    };
-  } catch (err) {
-    throw new Error(
-      `Invalid args: ${err instanceof Error ? err.message : String(err)}`,
-    );
-  }
+  const separatorIndex = argv.indexOf('--');
+  const docsArgv = separatorIndex >= 0 ? argv.slice(0, separatorIndex) : argv;
+  const forwardedArgv =
+    separatorIndex >= 0 ? argv.slice(separatorIndex + 1) : null;
 
-  const docsDirFromFlag =
-    (typeof parsed.values.docs === 'string' && parsed.values.docs) ||
-    (typeof parsed.values.input === 'string' && parsed.values.input) ||
-    null;
+  let docsDirFromFlag: string | null = null;
+  let help = false;
 
-  const removeIndexes = new Set<number>();
+  const remainingDocsArgv: string[] = [];
 
-  for (const token of parsed.tokens) {
-    if (token.kind !== 'option') continue;
+  for (let i = 0; i < docsArgv.length; i += 1) {
+    const arg = docsArgv[i] ?? '';
 
-    if (token.name === 'help') {
-      removeIndexes.add(token.index);
+    if (arg === '-h' || arg === '--help') {
+      help = true;
       continue;
     }
 
-    if (token.name === 'docs' || token.name === 'input') {
-      removeIndexes.add(token.index);
-
-      // When the value is provided as a separate arg (`--docs foo`), remove it.
-      if (token.inlineValue === false) {
-        removeIndexes.add(token.index + 1);
+    if (arg === '--docs' || arg === '--input') {
+      const next = docsArgv[i + 1];
+      if (typeof next !== 'string' || !next || next.startsWith('-')) {
+        throw new Error(`Invalid args: ${arg} requires a directory`);
       }
+
+      docsDirFromFlag = next;
+      i += 1;
+      continue;
     }
+
+    remainingDocsArgv.push(arg);
   }
 
-  const rest = argv.filter((_, idx) => !removeIndexes.has(idx));
+  // If no explicit flag is provided, treat the first non-flag token as the
+  // docs directory, and forward any remaining tokens to Vite.
+  let docsDirFromPositional: string | null = null;
+  const remainingAfterPositional: string[] = [];
 
-  return {
-    docsDir: docsDirFromFlag ?? defaultDocsDir,
-    rest,
-    help: Boolean(parsed.values.help),
-  };
+  for (let i = 0; i < remainingDocsArgv.length; i += 1) {
+    const arg = remainingDocsArgv[i] ?? '';
+
+    if (!docsDirFromPositional && !arg.startsWith('-') && arg !== '--') {
+      docsDirFromPositional = arg;
+      continue;
+    }
+
+    remainingAfterPositional.push(arg);
+  }
+
+  const docsDir = docsDirFromFlag ?? docsDirFromPositional ?? defaultDocsDir;
+
+  // If the user provided an explicit separator, forward only the args after it.
+  // Otherwise, forward any leftover args that weren't consumed as docs args.
+  const rest = forwardedArgv ?? remainingAfterPositional;
+
+  return { docsDir, rest, help };
 };
 
 export type ParseGenerateArgsDefaults = {

@@ -173,26 +173,26 @@ describe('compileMarkdown (assets)', () => {
     const result = compile('![Logo](./images/logo.png)', {
       currentRelPath: 'guides/page.md',
       currentSlug: '/guides/page',
-      assetsBase: '/docs-assets',
+      assetsBase: 'docs-assets',
     });
 
-    expect(result.html).toContain('src="/docs-assets/guides/images/logo.png"');
+    expect(result.html).toContain('src="docs-assets/guides/images/logo.png"');
   });
 
   it('rewrites relative Markdown links to the assets base (non-markdown)', () => {
     const result = compile('[PDF](./files/guide.pdf)', {
       currentRelPath: 'guides/page.md',
       currentSlug: '/guides/page',
-      assetsBase: '/docs-assets',
+      assetsBase: 'docs-assets',
     });
 
-    expect(result.html).toContain('href="/docs-assets/guides/files/guide.pdf"');
+    expect(result.html).toContain('href="docs-assets/guides/files/guide.pdf"');
   });
 
   it('does not rewrite absolute URLs or hash-router routes', () => {
     const result = compile(
       ['![A](https://example.com/a.png)', '', '[R](#/setup)'].join('\n'),
-      { assetsBase: '/docs-assets' },
+      { assetsBase: 'docs-assets' },
     );
 
     expect(result.html).toContain('src="https://example.com/a.png"');

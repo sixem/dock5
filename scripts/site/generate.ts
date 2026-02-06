@@ -12,7 +12,7 @@ import { compileMarkdown } from './markdown/compile.ts';
 
 const DEFAULT_OUT_FILE = path.join('src', 'generated', 'docs.json');
 const DEFAULT_ASSETS_DIR = path.join('public', 'docs-assets');
-const DEFAULT_ASSETS_BASE = '/docs-assets';
+const DEFAULT_ASSETS_BASE = 'docs-assets';
 
 const printHelp = () => {
   // Keep this short; full docs can live in README/docs later.
@@ -30,7 +30,7 @@ const printHelp = () => {
       '  --outFile         Output manifest file (defaults to src/generated/docs.json)',
       '  --outDir          Reserved (future: static bundle output dir)',
       '  --assetsDir       Copy non-Markdown files here (defaults to public/docs-assets)',
-      '  --assetsBase      URL prefix for copied assets (defaults to /docs-assets)',
+      '  --assetsBase      URL prefix for copied assets (defaults to docs-assets)',
       '  --base            Reserved (future: base URL, e.g. for GitHub Pages)',
     ].join('\n'),
   );
@@ -79,23 +79,52 @@ const humanizeFromFilename = (fileName: string) => {
   return spaced.length > 0 ? spaced[0].toUpperCase() + spaced.slice(1) : base;
 };
 
-const toSlug = (relativePath: string) => {
-  const withForwardSlashes = relativePath.split(path.sep).join('/');
-  const withoutExt = withForwardSlashes.replace(/\.md$/i, '');
+const toPosixRelPath = (relativePath: string) =>
+  relativePath.split(path.sep).join('/').replaceAll('\\', '/');
 
-  // Collapse "/index" to the folder route.
-  const withoutIndex =
-    withoutExt === 'index'
-      ? ''
-      : withoutExt.endsWith('/index')
-        ? withoutExt.slice(0, -'/index'.length)
-        : withoutExt;
+const dirKey = (posixRelPathDir: string) =>
+  posixRelPathDir
+    .split('/')
+    .filter(Boolean)
+    .join('/')
+    .toLowerCase();
 
-  const raw = `/${withoutIndex}`;
-  if (raw === '/') return '/';
+const makeToSlug = ({
+  indexDirs,
+}: {
+  // Normalized (lowercased) directories that contain an index.md page.
+  indexDirs: Set<string>;
+}) => {
+  return (relativePath: string) => {
+    const posixRel = toPosixRelPath(relativePath);
+    const parts = posixRel.split('/').filter(Boolean);
 
-  // No trailing slash (except root).
-  return raw.endsWith('/') ? raw.slice(0, -1) : raw;
+    const fileName = parts.pop() ?? '';
+    const dir = parts.join('/');
+
+    const name = fileName.replace(/\.md$/i, '');
+    const nameLower = name.toLowerCase();
+
+    const dirNormalized = dirKey(dir);
+
+    // Collapse "index.md" to the folder route.
+    if (nameLower === 'index') {
+      return dir ? `/${dir}` : '/';
+    }
+
+    // If a folder doesn't define an index.md, treat README.md as the folder index.
+    // This mirrors common repo conventions and keeps "docs as project docs" ergonomic.
+    if (nameLower === 'readme' && !indexDirs.has(dirNormalized)) {
+      return dir ? `/${dir}` : '/';
+    }
+
+    // Keep non-special file names stable, but normalize README to lowercase so
+    // links like "./README.md" and "./readme.md" resolve consistently.
+    const leaf = nameLower === 'readme' ? 'readme' : name;
+
+    const raw = `/${dir ? `${dir}/` : ''}${leaf}`;
+    return raw.endsWith('/') ? raw.slice(0, -1) : raw;
+  };
 };
 
 const listMarkdownFiles = async (dir: string) => {
@@ -188,6 +217,19 @@ export const generate = async ({
 
   const files = await listMarkdownFiles(absInputDir);
 
+  const indexDirs = new Set<string>();
+  for (const filePath of files) {
+    const rel = toPosixRelPath(path.relative(absInputDir, filePath));
+    const parts = rel.split('/').filter(Boolean);
+    const fileName = parts.pop() ?? '';
+    const dir = parts.join('/');
+
+    const nameLower = fileName.replace(/\.md$/i, '').toLowerCase();
+    if (nameLower === 'index') indexDirs.add(dirKey(dir));
+  }
+
+  const toSlug = makeToSlug({ indexDirs });
+
   const pages: GeneratedPage[] = [];
   for (const filePath of files) {
     const rel = path.relative(absInputDir, filePath);
@@ -217,7 +259,6 @@ export const generate = async ({
   pages.sort((a, b) => a.slug.localeCompare(b.slug));
 
   const manifest = {
-    inputDir,
     pages,
   };
 

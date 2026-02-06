@@ -65,7 +65,7 @@ describe('generate (assets)', () => {
         inputDir,
         outFile,
         assetsDir,
-        assetsBase: '/docs-assets',
+        assetsBase: 'docs-assets',
       });
 
       const manifestRaw = await fs.readFile(outFile, 'utf8');
@@ -74,10 +74,10 @@ describe('generate (assets)', () => {
       };
 
       expect(manifest.pages[0]?.html ?? '').toContain(
-        'src="/docs-assets/img/logo.png"',
+        'src="docs-assets/img/logo.png"',
       );
       expect(manifest.pages[0]?.html ?? '').toContain(
-        'href="/docs-assets/files/x.pdf"',
+        'href="docs-assets/files/x.pdf"',
       );
 
       await expect(
@@ -86,6 +86,79 @@ describe('generate (assets)', () => {
       await expect(
         fs.stat(path.join(assetsDir, 'files', 'x.pdf')),
       ).resolves.toBeDefined();
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('generate (README index fallback)', () => {
+  it('treats README.md as "/" when index.md is missing', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dock5-'));
+    try {
+      const inputDir = path.join(root, 'docs');
+      const outFile = path.join(root, 'out', 'docs.json');
+
+      await fs.mkdir(inputDir, { recursive: true });
+      await fs.writeFile(
+        path.join(inputDir, 'README.md'),
+        ['# Hello', '', 'Welcome'].join('\n'),
+        'utf8',
+      );
+
+      await generate({
+        inputDir,
+        outFile,
+        assetsDir: null,
+        assetsBase: null,
+      });
+
+      const manifestRaw = await fs.readFile(outFile, 'utf8');
+      const manifest = JSON.parse(manifestRaw) as {
+        pages: Array<{ slug: string; title: string }>;
+      };
+
+      expect(manifest.pages.map((p) => p.slug)).toEqual(['/']);
+      expect(manifest.pages[0]?.title).toBe('Hello');
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('does not override index.md when both exist', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dock5-'));
+    try {
+      const inputDir = path.join(root, 'docs');
+      const outFile = path.join(root, 'out', 'docs.json');
+
+      await fs.mkdir(inputDir, { recursive: true });
+      await fs.writeFile(
+        path.join(inputDir, 'index.md'),
+        ['# Index'].join('\n'),
+        'utf8',
+      );
+      await fs.writeFile(
+        path.join(inputDir, 'README.md'),
+        ['# Readme'].join('\n'),
+        'utf8',
+      );
+
+      await generate({
+        inputDir,
+        outFile,
+        assetsDir: null,
+        assetsBase: null,
+      });
+
+      const manifestRaw = await fs.readFile(outFile, 'utf8');
+      const manifest = JSON.parse(manifestRaw) as {
+        pages: Array<{ slug: string }>;
+      };
+
+      expect(manifest.pages.map((p) => p.slug).sort()).toEqual([
+        '/',
+        '/readme',
+      ]);
     } finally {
       await fs.rm(root, { recursive: true, force: true });
     }

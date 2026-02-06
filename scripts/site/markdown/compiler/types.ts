@@ -11,7 +11,7 @@ export type CompileMarkdownOptions = {
   currentRelPath: string;
   currentSlug: string;
   toSlug: (relativePath: string) => string;
-  // URL base for assets copied out of the docs folder (e.g. "/docs-assets").
+  // URL base for assets copied out of the docs folder (e.g. "docs-assets").
   // When set, relative links/images are rewritten to point at this base.
   assetsBase?: string | null;
 };

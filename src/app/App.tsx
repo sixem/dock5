@@ -15,9 +15,7 @@ const THEME_OPTIONS: Array<{ id: ThemePreference; label: string }> = [
   { id: 'light', label: 'Light' },
 ];
 
-const resolveThemePreference = (
-  preference: ThemePreference,
-): ResolvedTheme => {
+const resolveThemePreference = (preference: ThemePreference): ResolvedTheme => {
   if (preference !== 'system') return preference;
   return window.matchMedia?.('(prefers-color-scheme: dark)').matches
     ? 'dark'
@@ -319,22 +317,13 @@ export function App() {
       </div>
 
       {isSettingsOpen ? (
-        <div
-          class="overlay"
-          role="presentation"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setIsSettingsOpen(false);
-              return;
-            }
-
-            const target = e.target as HTMLElement | null;
-            if (target?.classList.contains('overlay__backdrop')) {
-              setIsSettingsOpen(false);
-            }
-          }}
-        >
-          <div class="overlay__backdrop" />
+        <div class="overlay" role="presentation">
+          <button
+            class="overlay__backdrop"
+            type="button"
+            aria-label="Close settings"
+            onClick={() => setIsSettingsOpen(false)}
+          />
           <div
             ref={settingsPanelRef}
             class="panel"

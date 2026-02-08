@@ -83,11 +83,7 @@ const toPosixRelPath = (relativePath: string) =>
   relativePath.split(path.sep).join('/').replaceAll('\\', '/');
 
 const dirKey = (posixRelPathDir: string) =>
-  posixRelPathDir
-    .split('/')
-    .filter(Boolean)
-    .join('/')
-    .toLowerCase();
+  posixRelPathDir.split('/').filter(Boolean).join('/').toLowerCase();
 
 const makeToSlug = ({
   indexDirs,

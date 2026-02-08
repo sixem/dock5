@@ -48,9 +48,8 @@ describe('parseDocsArgs', () => {
   });
 
   it('throws when --docs is missing a value', () => {
-    expect(() =>
-      parseDocsArgs(['--docs'], { defaultDocsDir: 'docs' }),
-    ).toThrow(/requires a directory/i);
+    expect(() => parseDocsArgs(['--docs'], { defaultDocsDir: 'docs' })).toThrow(
+      /requires a directory/i,
+    );
   });
 });
-

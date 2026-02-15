@@ -31,6 +31,7 @@ Thumbs.db
 
 # Local scratch / temp files
 _tmp_*
+.dock5/
 
 # Misc (don't remove)
 /AGENTS.md

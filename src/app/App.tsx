@@ -5,22 +5,28 @@ import { type DocsPage, docsManifest } from '@/docs/manifest';
 import { buildNavTree, collectAncestorKeys } from '@/docs/navTree';
 import { useHashLocation } from './routing/useHashLocation';
 
-type ResolvedTheme = 'light' | 'dark' | 'midnight';
-type ThemePreference = ResolvedTheme | 'system';
+type ResolvedTheme = 'light' | 'dark';
+type ThemePreference = ResolvedTheme;
 
-const THEME_OPTIONS: Array<{ id: ThemePreference; label: string }> = [
-  { id: 'system', label: 'System' },
-  { id: 'dark', label: 'Dark' },
-  { id: 'midnight', label: 'Midnight' },
-  { id: 'light', label: 'Light' },
+const THEME_OPTIONS: Array<{
+  id: ThemePreference;
+  label: string;
+  description: string;
+  swatchClass: string;
+}> = [
+  {
+    id: 'dark',
+    label: 'Black',
+    description: 'Pure black canvas with cyan accents.',
+    swatchClass: 'theme-option__swatch--dark',
+  },
+  {
+    id: 'light',
+    label: 'White',
+    description: 'True white surface with clean contrast.',
+    swatchClass: 'theme-option__swatch--light',
+  },
 ];
-
-const resolveThemePreference = (preference: ThemePreference): ResolvedTheme => {
-  if (preference !== 'system') return preference;
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches
-    ? 'dark'
-    : 'light';
-};
 
 function applyTheme(theme: ResolvedTheme) {
   document.documentElement.dataset.theme = theme;
@@ -28,16 +34,11 @@ function applyTheme(theme: ResolvedTheme) {
 
 function loadThemePreference(): ThemePreference {
   const stored = localStorage.getItem('dock5.theme');
-  if (
-    stored === 'system' ||
-    stored === 'light' ||
-    stored === 'dark' ||
-    stored === 'midnight'
-  ) {
+  if (stored === 'light' || stored === 'dark') {
     return stored;
   }
 
-  return 'system';
+  return 'dark';
 }
 
 export function App() {
@@ -55,10 +56,7 @@ export function App() {
     loadThemePreference(),
   );
 
-  const resolvedTheme = useMemo(
-    () => resolveThemePreference(themePreference),
-    [themePreference],
-  );
+  const resolvedTheme = themePreference;
 
   useEffect(() => {
     applyTheme(resolvedTheme);
@@ -66,26 +64,6 @@ export function App() {
 
   useEffect(() => {
     localStorage.setItem('dock5.theme', themePreference);
-  }, [themePreference]);
-
-  useEffect(() => {
-    // If the user chooses "System", keep the resolved theme in sync with OS changes.
-    if (themePreference !== 'system') return;
-
-    const media = window.matchMedia?.('(prefers-color-scheme: dark)');
-    if (!media) return;
-
-    const onChange = () => applyTheme(resolveThemePreference('system'));
-
-    // matchMedia change events have two APIs across browsers.
-    try {
-      media.addEventListener('change', onChange);
-      return () => media.removeEventListener('change', onChange);
-    } catch {
-      // Safari < 14
-      media.addListener(onChange);
-      return () => media.removeListener(onChange);
-    }
   }, [themePreference]);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -195,6 +173,16 @@ export function App() {
       return next;
     });
 
+  const onCategoryLinkClick = (e: MouseEvent, key: string) => {
+    // Preserve normal link behavior for modified clicks (new tab, etc.).
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+      return;
+    }
+
+    e.preventDefault();
+    toggleExpanded(key);
+  };
+
   const renderNavNodes = (nodes: ReturnType<typeof buildNavTree>) =>
     nodes.map((node) => {
       const hasChildren = node.children.length > 0;
@@ -229,7 +217,15 @@ export function App() {
             ) : null}
 
             {node.page ? (
-              <a class={resolvedLinkClass} href={`#${node.page.slug}`}>
+              <a
+                class={resolvedLinkClass}
+                href={`#${node.page.slug}`}
+                onClick={
+                  hasChildren
+                    ? (e) => onCategoryLinkClick(e, node.key)
+                    : undefined
+                }
+              >
                 <span class="nav__pill">{node.title}</span>
               </a>
             ) : (
@@ -255,7 +251,7 @@ export function App() {
       <header class="topbar">
         <div class="brand">
           <span class="brand__name">dock5</span>
-          <span class="brand__meta">docs engine prototype</span>
+          <span class="brand__meta">docs engine</span>
         </div>
 
         <div class="topbar__actions">
@@ -326,41 +322,52 @@ export function App() {
           />
           <div
             ref={settingsPanelRef}
-            class="panel"
+            class="panel panel--settings"
             role="dialog"
             aria-modal="true"
             aria-label="Settings"
           >
             <div class="panel__header">
-              <div class="panel__title">Settings</div>
+              <div class="panel__intro">
+                <div class="panel__eyebrow">Preferences</div>
+                <div class="panel__title">Interface Mode</div>
+              </div>
               <button
-                class="button button--icon"
+                class="button button--icon button--close"
                 type="button"
                 aria-label="Close settings"
                 onClick={() => setIsSettingsOpen(false)}
               >
-                <span aria-hidden="true">×</span>
+                <span aria-hidden="true">X</span>
               </button>
             </div>
 
             <div class="panel__section">
               <div class="panel__label">Theme</div>
-              <div class="segmented" role="radiogroup" aria-label="Theme">
+              <div class="theme-list" role="radiogroup" aria-label="Theme">
                 {THEME_OPTIONS.map((opt) => (
-                  <label key={opt.id} class="segmented__item">
+                  <label key={opt.id} class="theme-option">
                     <input
-                      class="segmented__input"
+                      class="theme-option__input"
                       type="radio"
                       name="theme"
                       value={opt.id}
                       checked={themePreference === opt.id}
                       onChange={() => setThemePreference(opt.id)}
                     />
-                    <span class="segmented__pill">{opt.label}</span>
+                    <span class="theme-option__body">
+                      <span class="theme-option__main">
+                        <span class="theme-option__name">{opt.label}</span>
+                        <span class="theme-option__desc">
+                          {opt.description}
+                        </span>
+                      </span>
+                      <span class={`theme-option__swatch ${opt.swatchClass}`} />
+                    </span>
                   </label>
                 ))}
               </div>
-              <div class="panel__hint">
+              <div class="panel__hint panel__hint--status">
                 Current: <span class="mono">{resolvedTheme}</span>
               </div>
             </div>

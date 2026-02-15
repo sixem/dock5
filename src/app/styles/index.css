@@ -1,69 +1,99 @@
 /*
-  Global styles and theme tokens.
+  Dock5 monochrome UI.
 
-  Theme tokens live in CSS variables so custom themes can override without rebuilding.
+  The interface is intentionally black-first, flat, and high-contrast.
+  Components consume tokens so the visual direction stays consistent.
 */
 
 :root {
-  --bg: #05060a;
-  --panel: rgba(255, 255, 255, 0.045);
-  --panel-2: rgba(255, 255, 255, 0.075);
-  --text: rgba(255, 255, 255, 0.92);
-  --text-muted: rgba(255, 255, 255, 0.62);
-  --border: rgba(255, 255, 255, 0.11);
+  --bg: #000000;
+  --bg-elev-1: #000000;
+  --bg-elev-2: #0b0b0b;
+  --bg-elev-3: #131313;
 
-  /* Accent colors (subtle cyber vibes). */
-  --accent: #30e3ff;
-  --accent-2: #c14bff;
-  --brand: var(--accent);
+  --text: #f5f5f5;
+  --text-soft: #cfcfcf;
+  --text-muted: #9a9a9a;
+  --accent: #ff2a2a;
 
-  /* Shared rounding so the UI feels consistent. */
-  /* Slightly tighter than the initial prototype (less "pill-y"). */
-  --r-lg: 8px;
-  --r-md: 6px;
-  --r-sm: 4px;
+  --border: #222222;
+  --border-strong: #343434;
 
-  --focus: color-mix(in oklab, var(--accent), white 18%);
-  --shadow: 0 16px 60px rgba(0, 0, 0, 0.55);
-  --shadow-active: 0 10px 28px rgba(0, 0, 0, 0.35);
+  --interactive: var(--bg-elev-2);
+  --interactive-hover: var(--bg-elev-3);
+  --interactive-press: #171717;
+  --interactive-active: #0d0d0d;
+  --interactive-active-text: #f5f5f5;
+
+  --nav-active-bg: transparent;
+  --nav-active-border: transparent;
+  --nav-active-text: color-mix(in oklab, var(--accent), var(--text) 16%);
+  --nav-active-rail: var(--accent);
+  --nav-active-hover-bg: transparent;
+  --nav-active-hover-text: color-mix(in oklab, var(--accent), white 12%);
+
+  --grid-line: rgba(255, 255, 255, 0.03);
+  --surface: var(--bg);
+  --doc-link: #ffacac;
+  --doc-link-hover: #ffd0d0;
+  --scrollbar-thumb: #3a3a3a;
+  --scrollbar-thumb-hover: #505050;
+  --scrollbar-thumb-active: #666666;
+
+  --focus: #ffffff;
+
+  --r-lg: 0;
+  --r-md: 0;
+  --r-sm: 0;
+
+  --font-ui:
+    "Space Grotesk", "IBM Plex Sans", "Avenir Next", "Segoe UI Variable Text",
+    "Helvetica Neue", sans-serif;
+  --font-mono:
+    "IBM Plex Mono", "JetBrains Mono", "Fira Code", "SFMono-Regular", Consolas,
+    "Liberation Mono", monospace;
 
   color-scheme: dark;
 }
 
 :root[data-theme="light"] {
-  --bg: #f7f7fb;
-  --panel: rgba(10, 10, 20, 0.05);
-  --panel-2: rgba(10, 10, 20, 0.08);
-  --text: rgba(10, 10, 20, 0.92);
-  --text-muted: rgba(10, 10, 20, 0.6);
-  --border: rgba(10, 10, 20, 0.12);
-  --accent: #0369a1;
-  --accent-2: #7c3aed;
-  --brand: var(--accent);
-  --r-lg: 8px;
-  --r-md: 6px;
-  --r-sm: 4px;
-  --focus: color-mix(in oklab, var(--accent), white 12%);
-  --shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
-  --shadow-active: 0 10px 18px rgba(0, 0, 0, 0.1);
+  --bg: #ffffff;
+  --bg-elev-1: #ffffff;
+  --bg-elev-2: #f3f3f3;
+  --bg-elev-3: #e8e8e8;
+
+  --text: #101010;
+  --text-soft: #222222;
+  --text-muted: #5b5b5b;
+  --accent: #ff2a2a;
+
+  --border: #d4d4d4;
+  --border-strong: #b9b9b9;
+
+  --interactive: var(--bg-elev-2);
+  --interactive-hover: var(--bg-elev-3);
+  --interactive-press: #dddddd;
+  --interactive-active: #111111;
+  --interactive-active-text: #ffffff;
+
+  --nav-active-bg: transparent;
+  --nav-active-border: transparent;
+  --nav-active-text: #c51515;
+  --nav-active-rail: #ff2a2a;
+  --nav-active-hover-bg: transparent;
+  --nav-active-hover-text: #af1010;
+
+  --grid-line: rgba(0, 0, 0, 0.045);
+  --surface: var(--bg);
+  --doc-link: #b6203b;
+  --doc-link-hover: #9f1b34;
+  --scrollbar-thumb: #c2c2c2;
+  --scrollbar-thumb-hover: #a8a8a8;
+  --scrollbar-thumb-active: #8f8f8f;
+
+  --focus: #000000;
 
   color-scheme: light;
-}
-
-:root[data-theme="midnight"] {
-  --bg: #02030a;
-  --panel: rgba(255, 255, 255, 0.04);
-  --panel-2: rgba(255, 255, 255, 0.07);
-  --text: rgba(255, 255, 255, 0.94);
-  --text-muted: rgba(255, 255, 255, 0.68);
-  --border: rgba(255, 255, 255, 0.12);
-
-  --accent: #6ee7ff;
-  --accent-2: #ff4bd8;
-  --brand: var(--accent);
-  --focus: color-mix(in oklab, var(--accent), white 18%);
-
-  color-scheme: dark;
 }
 
 *,
@@ -79,149 +109,93 @@ body {
 
 body {
   margin: 0;
-  background:
-    radial-gradient(
-      900px circle at 16% 0%,
-      color-mix(in oklab, var(--accent), transparent 94%),
-      transparent 60%
-    ),
-    radial-gradient(
-      700px circle at 86% 18%,
-      color-mix(in oklab, var(--accent-2), transparent 94%),
-      transparent 55%
-    ),
-    var(--bg);
+  background: var(--bg);
   color: var(--text);
-  position: relative;
-  font-family:
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    Segoe UI,
-    Roboto,
-    Helvetica,
-    Arial,
-    "Apple Color Emoji",
-    "Segoe UI Emoji";
+  font-family: var(--font-ui);
+  letter-spacing: 0.01em;
   overflow: hidden;
 }
 
-:root:not([data-theme="light"]) body::before {
-  /* Dark-mode-only ambient glow animation: compositor-friendly (transform/opacity). */
-  content: "";
-  position: fixed;
-  inset: -24%;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.22;
-  background:
-    radial-gradient(
-      600px circle at 28% 32%,
-      color-mix(in oklab, var(--accent), transparent 80%),
-      transparent 62%
-    ),
-    radial-gradient(
-      520px circle at 78% 26%,
-      color-mix(in oklab, var(--accent-2), transparent 82%),
-      transparent 60%
-    );
-  transform: translate3d(-2%, -1%, 0) rotate(0deg) scale(1.04);
-  will-change: transform, opacity;
-  animation: dock5-nebula 34s ease-in-out infinite alternate;
+::selection {
+  background: #ffffff;
+  color: #000000;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  :root:not([data-theme="light"]) body::before {
-    animation: none;
-    opacity: 0.18;
-  }
+:root[data-theme="light"] ::selection {
+  background: #ffd166;
+  color: #111111;
 }
 
-:where(a, button):focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
+:where(a, button, input):focus-visible {
+  outline: none;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background: var(--scrollbar-thumb-active);
 }
 
 .app {
-  position: relative;
-  z-index: 1;
   height: 100vh;
   height: 100dvh;
   display: grid;
   grid-template-rows: auto 1fr;
+  background: var(--bg);
   overflow: hidden;
 }
 
 .topbar {
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 16px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--border);
-  background:
-    linear-gradient(
-      90deg,
-      color-mix(in oklab, var(--accent), transparent 95%),
-      color-mix(in oklab, var(--accent-2), transparent 97%)
-    ),
-    color-mix(in oklab, var(--bg), white 3%);
-}
-
-.topbar::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in oklab, var(--accent), transparent 55%),
-    color-mix(in oklab, var(--accent-2), transparent 58%),
-    transparent
-  );
-  pointer-events: none;
-}
-
-:root:not([data-theme="light"]) .topbar::after {
-  animation: dock5-sweep 9s ease-in-out infinite;
-  will-change: transform, opacity;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  :root:not([data-theme="light"]) .topbar::after {
-    animation: none;
-  }
+  background: var(--surface);
 }
 
 .brand {
   display: flex;
   align-items: baseline;
   gap: 10px;
+  min-width: 0;
 }
 
 .brand__name {
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--brand);
-}
-
-@supports ((background-clip: text) or (-webkit-background-clip: text)) {
-  .brand__name {
-    background: linear-gradient(90deg, var(--accent), var(--accent-2));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    -webkit-text-fill-color: transparent;
-  }
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--text);
 }
 
 .brand__meta {
   font-size: 12px;
   color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .topbar__actions {
@@ -233,7 +207,7 @@ body {
 .button {
   appearance: none;
   border: 1px solid var(--border);
-  background: var(--panel);
+  background: var(--interactive);
   color: var(--text);
   font: inherit;
   padding: 8px 10px;
@@ -246,8 +220,12 @@ body {
 }
 
 .button:hover {
-  background: var(--panel-2);
-  border-color: color-mix(in oklab, var(--accent), var(--border) 78%);
+  background: var(--interactive-hover);
+  border-color: var(--border-strong);
+}
+
+.button:active {
+  background: var(--interactive-press);
 }
 
 .button--icon {
@@ -261,10 +239,7 @@ body {
 }
 
 .mono {
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-    "Courier New", monospace;
-  font-size: 0.95em;
+  font-weight: 600;
 }
 
 .overlay {
@@ -273,15 +248,13 @@ body {
   z-index: 20;
   display: grid;
   place-items: center;
-  padding: 18px;
+  padding: 12px;
 }
 
 .overlay__backdrop {
   position: absolute;
   inset: 0;
-  background: color-mix(in oklab, var(--bg), black 35%);
-  opacity: 0.85;
-  backdrop-filter: blur(12px);
+  background: rgba(0, 0, 0, 0.82);
   border: 0;
   padding: 0;
   cursor: pointer;
@@ -289,90 +262,156 @@ body {
 
 .panel {
   position: relative;
-  width: min(520px, 100%);
+  width: min(460px, 100%);
   border-radius: var(--r-lg);
-  border: 1px solid color-mix(in oklab, var(--border), transparent 10%);
-  background: color-mix(in oklab, var(--bg), white 5%);
-  box-shadow: var(--shadow);
-  padding: 14px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  padding: 10px;
 }
 
 .panel__header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 10px;
-  padding-bottom: 10px;
+  gap: 8px;
+  padding-bottom: 8px;
   border-bottom: 1px solid var(--border);
-  margin-bottom: 12px;
+  margin-bottom: 8px;
+}
+
+.panel__intro {
+  display: grid;
+  gap: 2px;
+}
+
+.panel__eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
 .panel__title {
   font-weight: 650;
-  letter-spacing: -0.02em;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  font-size: 12px;
 }
 
 .panel__section {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .panel__label {
-  font-size: 12px;
-  letter-spacing: 0.06em;
+  font-size: 11px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
 }
 
 .panel__hint {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-muted);
 }
 
-.segmented {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  gap: 8px;
+.panel__hint--status .mono {
+  text-transform: uppercase;
 }
 
-.segmented__item {
+.button--close {
+  width: 30px;
+  height: 30px;
+  font-size: 12px;
+}
+
+.theme-list {
+  display: grid;
+  gap: 6px;
+}
+
+.theme-option {
   position: relative;
   display: block;
   cursor: pointer;
 }
 
-.segmented__input {
+.theme-option__input {
   position: absolute;
   opacity: 0;
   pointer-events: none;
 }
 
-.segmented__pill {
-  display: block;
-  text-align: center;
-  padding: 10px 10px;
-  border-radius: var(--r-md);
+.theme-option__body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px;
   border: 1px solid var(--border);
-  background: var(--panel);
+  background: var(--interactive);
+  position: relative;
+}
+
+.theme-option__main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.theme-option__name {
+  font-size: 12px;
+  font-weight: 620;
   color: var(--text);
-  user-select: none;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.segmented__item:hover .segmented__pill {
-  background: var(--panel-2);
-  border-color: color-mix(in oklab, var(--accent), var(--border) 78%);
+.theme-option__desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.2;
 }
 
-.segmented__input:checked + .segmented__pill {
-  background: linear-gradient(
-    90deg,
-    color-mix(in oklab, var(--accent), transparent 76%),
-    color-mix(in oklab, var(--accent-2), transparent 82%)
-  );
-  border-color: color-mix(in oklab, var(--accent), var(--border) 60%);
-  box-shadow:
-    0 0 0 1px color-mix(in oklab, var(--accent), transparent 72%),
-    var(--shadow-active);
+.theme-option__swatch {
+  width: 36px;
+  height: 20px;
+  border: 1px solid var(--border-strong);
+  flex: 0 0 auto;
+}
+
+.theme-option__swatch--dark {
+  background: #000000;
+}
+
+.theme-option__swatch--light {
+  background: #ffffff;
+}
+
+.theme-option:hover .theme-option__body {
+  background: var(--interactive-hover);
+  border-color: var(--border-strong);
+}
+
+.theme-option__input:checked + .theme-option__body {
+  border-color: var(--border);
+  background: var(--interactive);
+}
+
+.theme-option__input:checked + .theme-option__body::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: var(--accent);
+}
+
+.theme-option__input:checked + .theme-option__body .theme-option__name {
+  color: var(--nav-active-text);
+}
+
+.theme-option__input:checked + .theme-option__body .theme-option__desc {
+  color: var(--text-soft);
 }
 
 .layout {
@@ -384,8 +423,8 @@ body {
 
 .sidebar {
   border-right: 1px solid var(--border);
-  background: color-mix(in oklab, var(--bg), white 2%);
-  padding: 14px;
+  background: var(--surface);
+  padding: 12px;
   min-height: 0;
   overflow: auto;
 }
@@ -397,7 +436,7 @@ body {
 
 .sidebar__title {
   font-size: 12px;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
   white-space: nowrap;
@@ -408,7 +447,6 @@ body {
 .nav {
   display: grid;
   gap: 0;
-  /* Shared layout knobs so we can tweak spacing without click-dead-zones. */
   --nav-control: 18px;
   --nav-gap: 6px;
   --nav-vgap: 6px;
@@ -422,7 +460,6 @@ body {
 .nav__row {
   display: grid;
   grid-template-columns: var(--nav-control) 1fr;
-  column-gap: 0;
   align-items: center;
 }
 
@@ -439,13 +476,11 @@ body {
   cursor: pointer;
   display: grid;
   place-items: center;
-  position: relative;
-  z-index: 2;
 }
 
 .nav__toggle:hover {
   color: var(--text);
-  background: var(--panel);
+  background: var(--interactive);
 }
 
 .nav__caret {
@@ -454,7 +489,6 @@ body {
   border-top: 4px solid transparent;
   border-bottom: 4px solid transparent;
   border-left: 6px solid currentColor;
-  transition: transform 120ms ease;
   transform: rotate(0deg);
 }
 
@@ -467,7 +501,7 @@ body {
   gap: 0;
   margin-left: var(--nav-control);
   padding-left: 10px;
-  border-left: 1px solid color-mix(in oklab, var(--border), var(--accent) 10%);
+  border-left: 1px solid var(--border);
 }
 
 .nav__link {
@@ -475,21 +509,30 @@ body {
   display: block;
   text-decoration: none;
   padding-block: calc(var(--nav-vgap) / 2);
-  position: relative;
-  z-index: 1;
   min-width: 0;
 }
 
 .nav__pill {
   display: block;
-  color: var(--text);
-  padding: 8px 10px;
+  color: var(--text-soft);
+  padding: 7px 9px;
   padding-left: calc(10px + var(--nav-gap));
   border-radius: var(--r-md);
   border: 1px solid transparent;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  position: relative;
+  font-weight: 500;
+}
+
+.nav__link .nav__pill::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: color-mix(in oklab, var(--nav-active-rail), var(--border) 62%);
+  opacity: 0;
 }
 
 .nav__link--leaf {
@@ -501,29 +544,50 @@ body {
 }
 
 .nav__link:not(.nav__link--active):not(.nav__link--ancestor):hover .nav__pill {
-  background: var(--panel);
-  border-color: var(--border);
+  background: transparent;
+  border-color: transparent;
+  color: color-mix(in oklab, var(--nav-active-text), var(--text) 24%);
+}
+
+.nav__link:not(.nav__link--active):not(.nav__link--ancestor):hover
+  .nav__pill::before {
+  opacity: 0.6;
 }
 
 .nav__link--active .nav__pill {
-  background: linear-gradient(
-    90deg,
-    color-mix(in oklab, var(--accent), transparent 76%),
-    color-mix(in oklab, var(--accent-2), transparent 82%)
-  );
-  border-color: color-mix(in oklab, var(--accent), var(--border) 60%);
-  box-shadow:
-    0 0 0 1px color-mix(in oklab, var(--accent), transparent 72%),
-    var(--shadow-active);
+  background: var(--nav-active-bg);
+  border-color: var(--nav-active-border);
+  color: var(--text);
+  font-weight: 500;
+}
+
+.nav__link--active .nav__pill::before {
+  background: var(--nav-active-rail);
+  opacity: 1;
 }
 
 .nav__link--active:hover .nav__pill {
-  border-color: color-mix(in oklab, var(--accent), var(--border) 52%);
+  background: var(--nav-active-bg);
+  border-color: var(--nav-active-border);
+  color: var(--text);
 }
 
 .nav__link--ancestor .nav__pill {
-  background: var(--panel);
-  border-color: var(--border);
+  background: transparent;
+  border-color: transparent;
+  color: color-mix(in oklab, var(--nav-active-text), var(--text) 28%);
+  font-weight: 500;
+}
+
+.nav__link--ancestor .nav__pill::before {
+  background: color-mix(in oklab, var(--nav-active-rail), var(--border) 45%);
+  opacity: 0.8;
+}
+
+.nav__link--ancestor:hover .nav__pill {
+  background: transparent;
+  border-color: transparent;
+  color: color-mix(in oklab, var(--nav-active-text), var(--text) 16%);
 }
 
 .nav__group {
@@ -538,14 +602,13 @@ body {
   border-radius: var(--r-md);
   cursor: pointer;
   text-align: left;
-  position: relative;
-  z-index: 1;
   min-width: 0;
 }
 
 .nav__group:hover .nav__pill {
-  background: var(--panel);
+  background: var(--interactive);
   border-color: var(--border);
+  color: var(--text);
 }
 
 .content {
@@ -553,6 +616,26 @@ body {
   min-width: 0;
   min-height: 0;
   overflow: auto;
+  background: var(--surface);
+  position: relative;
+}
+
+.content::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 24px 24px;
+  opacity: 0.22;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.22), transparent 76%);
+}
+
+.content > * {
+  position: relative;
+  z-index: 1;
 }
 
 .content__meta {
@@ -567,83 +650,127 @@ body {
   font-size: 12px;
 }
 
+.content__path {
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+}
+
 .doc {
   max-width: none;
 }
 
 .doc__title {
   margin: 0 0 12px 0;
-  font-size: 28px;
-  letter-spacing: -0.02em;
+  font-size: 30px;
+  letter-spacing: -0.01em;
 }
 
 .doc__text {
-  color: var(--text);
+  color: var(--text-soft);
 }
 
 .doc__content {
-  padding: 16px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow);
+  margin: 0;
+  padding: 0;
   overflow: auto;
+  position: relative;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.doc__content > * {
+  margin-inline: 24px;
+}
+
+.doc__content > :first-child {
+  margin-top: 24px;
+}
+
+.doc__content > :last-child {
+  margin-bottom: 24px;
 }
 
 .doc__content :where(p, ul, ol, pre, blockquote, hr, table) {
-  margin: 0 0 12px 0;
+  margin: 0 0 16px 0;
 }
 
 .doc__content :where(ul, ol) {
-  padding-left: 22px;
+  padding-left: 2em;
 }
 
 .doc__content :where(li) {
-  margin: 6px 0;
+  margin: 0.3em 0;
 }
 
-.doc__content :where(h2, h3, h4, h5, h6) {
-  margin: 22px 0 10px 0;
-  letter-spacing: -0.015em;
+.doc__content :where(ul ul, ul ol, ol ul, ol ol) {
+  margin-top: 0.25em;
+  margin-bottom: 0;
 }
 
-.doc__content > :where(h2):first-child {
-  margin-top: 0;
+.doc__content :where(h1, h2, h3, h4, h5, h6) {
+  margin: 24px 0 16px 0;
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--text);
+}
+
+.doc__content :where(h1) {
+  font-size: 2em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--border);
 }
 
 .doc__content :where(h2) {
-  font-size: 22px;
+  font-size: 1.5em;
+  padding-bottom: 0.2em;
+  border-bottom: 1px solid var(--border);
 }
 
 .doc__content :where(h3) {
-  font-size: 18px;
+  font-size: 1.25em;
+}
+
+.doc__content :where(h4) {
+  font-size: 1em;
+}
+
+.doc__content :where(h5) {
+  font-size: 0.875em;
+}
+
+.doc__content :where(h6) {
+  font-size: 0.85em;
+  color: var(--text-muted);
 }
 
 .doc__content :where(a) {
-  color: var(--brand);
+  color: var(--doc-link);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.16em;
 }
 
 .doc__content :where(a:hover) {
-  text-decoration: underline;
+  color: var(--doc-link-hover);
 }
 
 .doc__content :where(code) {
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-    "Courier New", monospace;
-  font-size: 0.95em;
-  background: color-mix(in oklab, var(--bg), white 8%);
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--bg-elev-2);
   border: 1px solid var(--border);
-  padding: 1px 6px;
+  padding: 0.2em 0.4em;
   border-radius: var(--r-sm);
 }
 
 .doc__content :where(pre) {
-  padding: 12px 14px;
-  background: color-mix(in oklab, var(--bg), white 6%);
+  padding: 16px;
+  background: var(--bg-elev-2);
   border: 1px solid var(--border);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-md);
   overflow: auto;
+  line-height: 1.45;
 }
 
 .doc__content :where(pre code) {
@@ -654,55 +781,47 @@ body {
 }
 
 .doc__content :where(blockquote) {
-  margin: 0 0 12px 0;
-  padding: 6px 0 6px 14px;
-  border-left: 3px solid color-mix(in oklab, var(--brand), var(--border) 70%);
+  margin: 0 0 16px 0;
+  padding: 0 1em;
+  border-left: 0.25em solid var(--border-strong);
   color: var(--text-muted);
 }
 
 .doc__content :where(hr) {
   border: 0;
-  height: 1px;
-  background: var(--border);
+  border-top: 1px solid var(--border);
+  height: 0;
 }
 
 .doc__content :where(table) {
   width: 100%;
-  border-collapse: separate;
+  border-collapse: collapse;
   border-spacing: 0;
   border: 1px solid var(--border);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-md);
   overflow: hidden;
+  display: block;
+  overflow-x: auto;
 }
 
 .doc__content :where(th, td) {
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--border);
-  border-right: 1px solid var(--border);
+  padding: 6px 13px;
+  border: 1px solid var(--border);
   vertical-align: top;
 }
 
 .doc__content :where(th) {
-  background: color-mix(in oklab, var(--bg), white 8%);
+  background: var(--bg-elev-2);
   font-weight: 600;
 }
 
-.doc__content :where(tr:last-child td) {
-  border-bottom: 0;
-}
-
-.doc__content :where(th:last-child, td:last-child) {
-  border-right: 0;
-}
-
 .doc__content :where(tbody tr:nth-child(2n) td) {
-  background: color-mix(in oklab, var(--bg), white 3%);
+  background: color-mix(in oklab, var(--bg-elev-2), var(--surface) 45%);
 }
 
 .doc__content :where(img) {
   max-width: 100%;
   height: auto;
-  border-radius: var(--r-lg);
 }
 
 @media (max-width: 880px) {
@@ -714,34 +833,8 @@ body {
     border-right: 0;
     border-bottom: 1px solid var(--border);
   }
-}
 
-@keyframes dock5-nebula {
-  0% {
-    transform: translate3d(-2%, -1%, 0) rotate(0deg) scale(1.04);
-    opacity: 0.2;
-  }
-  55% {
-    transform: translate3d(1.2%, -0.4%, 0) rotate(18deg) scale(1.08);
-    opacity: 0.24;
-  }
-  100% {
-    transform: translate3d(2.2%, 1.6%, 0) rotate(34deg) scale(1.06);
-    opacity: 0.21;
-  }
-}
-
-@keyframes dock5-sweep {
-  0% {
-    transform: translate3d(-4%, 0, 0);
-    opacity: 0.7;
-  }
-  50% {
-    transform: translate3d(4%, 0, 0);
-    opacity: 1;
-  }
-  100% {
-    transform: translate3d(-3%, 0, 0);
-    opacity: 0.75;
+  .brand__meta {
+    display: none;
   }
 }

@@ -85,16 +85,39 @@ export function App() {
   }, [path]);
 
   const currentPage = pagesBySlug.get(path) ?? pagesBySlug.get('/') ?? null;
+  const previousPathRef = useRef(path);
 
   useEffect(() => {
-    if (!fragment) return;
+    const previousPath = previousPathRef.current;
+    const pathChanged = previousPath !== path;
+    previousPathRef.current = path;
 
     // Defer to ensure the new page content is in the DOM.
     requestAnimationFrame(() => {
-      const el = document.getElementById(fragment);
-      el?.scrollIntoView({ block: 'start' });
+      if (fragment) {
+        const decodedFragment = (() => {
+          try {
+            return decodeURIComponent(fragment);
+          } catch {
+            return fragment;
+          }
+        })();
+
+        const el = document.getElementById(decodedFragment);
+        if (el) {
+          el.scrollIntoView({ block: 'start', behavior: 'auto' });
+          return;
+        }
+      }
+
+      // Standard SPA behavior:
+      // - no fragment: jump to top
+      // - fragment missing on navigation: also fall back to top
+      if (!fragment || pathChanged) {
+        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      }
     });
-  }, [currentPage?.slug, fragment]);
+  }, [path, currentPage?.slug, fragment]);
 
   useEffect(() => {
     if (!isSettingsOpen) return;

@@ -1,5 +1,9 @@
 export type SiteLink = { label: string; href: string };
+export type NavOverride = { label?: string; order?: number };
 export type SiteConfig = {
+  navigation: Record<string, NavOverride>;
+  exclude: string[];
+  defaultTheme: 'dark' | 'light';
   title: string | null;
   description: string | null;
   logo: string | null;
@@ -13,7 +17,18 @@ export const parseSiteConfig = (value: unknown): SiteConfig => {
   }
   const config = value as Record<string, unknown>;
   for (const key of Object.keys(config)) {
-    if (!['title', 'description', 'logo', 'favicon', 'links'].includes(key)) {
+    if (
+      ![
+        'title',
+        'description',
+        'logo',
+        'favicon',
+        'links',
+        'defaultTheme',
+        'navigation',
+        'exclude',
+      ].includes(key)
+    ) {
       throw new Error(`unknown option "${key}"`);
     }
   }
@@ -72,7 +87,76 @@ export const parseSiteConfig = (value: unknown): SiteConfig => {
     }
     return { label: link.label.trim(), href };
   });
+  const navigation: Record<string, NavOverride> = {};
+  if ('navigation' in config) {
+    if (
+      !config.navigation ||
+      typeof config.navigation !== 'object' ||
+      Array.isArray(config.navigation)
+    )
+      throw new Error('navigation must be an object');
+    for (const [route, raw] of Object.entries(config.navigation)) {
+      if (
+        !/^\/(?:[^/#]+(?:\/[^/#]+)*)?$/.test(route) ||
+        route.split('/').some((part) => part === '.' || part === '..')
+      )
+        throw new Error('navigation keys must be page or folder routes');
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw))
+        throw new Error(`navigation ${route} must be an object`);
+      const entry = raw as Record<string, unknown>;
+      if (Object.keys(entry).some((key) => !['label', 'order'].includes(key)))
+        throw new Error(`unknown navigation option for ${route}`);
+      if (
+        'label' in entry &&
+        (typeof entry.label !== 'string' || !entry.label.trim())
+      )
+        throw new Error(`navigation ${route} label must be a non-empty string`);
+      if (
+        'order' in entry &&
+        (typeof entry.order !== 'number' || !Number.isFinite(entry.order))
+      )
+        throw new Error(`navigation ${route} order must be a finite number`);
+      navigation[route] = {
+        ...('label' in entry ? { label: (entry.label as string).trim() } : {}),
+        ...('order' in entry ? { order: entry.order as number } : {}),
+      };
+    }
+  }
+  if ('exclude' in config && !Array.isArray(config.exclude))
+    throw new Error('exclude must be an array');
+  const exclude = ((config.exclude ?? []) as unknown[]).map((value) => {
+    if (typeof value !== 'string')
+      throw new Error(
+        'exclude entries must be docs-relative file or folder paths',
+      );
+    const normalized = value
+      .replaceAll('\\', '/')
+      .replace(/^\.\//, '')
+      .replace(/\/$/, '');
+    if (
+      !normalized ||
+      /[:*?#]/.test(normalized) ||
+      normalized
+        .split('/')
+        .some((part) => !part || part === '.' || part === '..')
+    )
+      throw new Error(
+        'exclude entries must be docs-relative file or folder paths',
+      );
+    return normalized;
+  });
+  const defaultTheme = config.defaultTheme ?? 'dark';
+  if (
+    'defaultTheme' in config &&
+    config.defaultTheme !== 'dark' &&
+    config.defaultTheme !== 'light'
+  ) {
+    throw new Error('defaultTheme must be dark or light');
+  }
   return {
+    navigation,
+    exclude,
+    defaultTheme: defaultTheme as 'dark' | 'light',
     title: text('title'),
     description: text('description'),
     logo: asset('logo'),

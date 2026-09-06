@@ -1,6 +1,7 @@
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { runInNewContext } from 'node:vm';
 import { build } from 'vite';
 import { expect, it } from 'vitest';
 import { docsAssetsPlugin } from './docsAssets.ts';
@@ -18,6 +19,7 @@ it('copies staged assets to a custom Vite output and replaces stale public asset
     await fs.writeFile(
       manifestPath,
       JSON.stringify({
+        defaultTheme: 'light',
         title: 'Project & </title><script>bad</script>',
         description: 'Project "docs" & reference',
         favicon: 'docs-assets/icon.svg',
@@ -45,6 +47,23 @@ it('copies staged assets to a custom Vite output and replaces stale public asset
 
     await runBuild();
     const html = await fs.readFile(path.join(outDir, 'index.html'), 'utf8');
+    const themeScript = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+    expect(themeScript).toBeDefined();
+    for (const saved of [null, 'dark', 'invalid', 'blocked']) {
+      const document = { documentElement: { dataset: { theme: '' } } };
+      runInNewContext(themeScript ?? '', {
+        document,
+        localStorage: {
+          getItem: () => {
+            if (saved === 'blocked') throw new Error('blocked');
+            return saved;
+          },
+        },
+      });
+      expect(document.documentElement.dataset.theme).toBe(
+        saved === 'dark' ? 'dark' : 'light',
+      );
+    }
     expect(html).toContain('name="description"');
     expect(html).toContain('&quot;docs&quot;');
     expect(html).toContain('href="docs-assets/icon.svg"');

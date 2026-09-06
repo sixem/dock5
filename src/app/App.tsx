@@ -40,7 +40,7 @@ function loadThemePreference(): ThemePreference {
     // Storage may be disabled by browser privacy settings.
   }
 
-  return 'dark';
+  return docsManifest.defaultTheme;
 }
 
 export function App() {
@@ -52,7 +52,10 @@ export function App() {
     return map;
   }, []);
 
-  const navTree = useMemo(() => buildNavTree(docsManifest.pages), []);
+  const navTree = useMemo(
+    () => buildNavTree(docsManifest.pages, docsManifest.navigation),
+    [],
+  );
 
   const [themePreference, setThemePreference] = useState<ThemePreference>(() =>
     loadThemePreference(),
@@ -60,17 +63,24 @@ export function App() {
 
   const resolvedTheme = themePreference;
 
+  const selectTheme = (theme: ThemePreference) => {
+    setThemePreference(theme);
+    try {
+      localStorage.setItem('dock5.theme', theme);
+    } catch {
+      // Theme changes still work when storage is unavailable.
+    }
+  };
+
   useEffect(() => {
     applyTheme(resolvedTheme);
   }, [resolvedTheme]);
 
+  const [isNavOpen, setIsNavOpen] = useState(false);
+  const navButtonRef = useRef<HTMLButtonElement | null>(null);
   useEffect(() => {
-    try {
-      localStorage.setItem('dock5.theme', themePreference);
-    } catch {
-      // The selected theme still works for this session without persistence.
-    }
-  }, [themePreference]);
+    setIsNavOpen(false);
+  }, [path]);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const settingsButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -237,16 +247,6 @@ export function App() {
       return next;
     });
 
-  const onCategoryLinkClick = (e: MouseEvent, key: string) => {
-    // Preserve normal link behavior for modified clicks (new tab, etc.).
-    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
-      return;
-    }
-
-    e.preventDefault();
-    toggleExpanded(key);
-  };
-
   const renderNavNodes = (nodes: ReturnType<typeof buildNavTree>) =>
     nodes.map((node) => {
       const hasChildren = node.children.length > 0;
@@ -284,11 +284,7 @@ export function App() {
               <a
                 class={resolvedLinkClass}
                 href={`#${node.page.slug}`}
-                onClick={
-                  hasChildren
-                    ? (e) => onCategoryLinkClick(e, node.key)
-                    : undefined
-                }
+                onClick={() => setIsNavOpen(false)}
               >
                 <span class="nav__pill">{node.title}</span>
               </a>
@@ -322,6 +318,16 @@ export function App() {
         </div>
 
         <div class="topbar__actions">
+          <button
+            ref={navButtonRef}
+            class="button mobile-nav-toggle"
+            type="button"
+            aria-expanded={isNavOpen}
+            aria-controls="page-navigation"
+            onClick={() => setIsNavOpen((open) => !open)}
+          >
+            Pages
+          </button>
           {docsManifest.links.length ? (
             <nav class="header-links" aria-label="Project links">
               {docsManifest.links.map((link) => (
@@ -357,10 +363,21 @@ export function App() {
       </header>
 
       <div class="layout">
-        <aside class="sidebar">
+        <aside
+          id="page-navigation"
+          class={`sidebar${isNavOpen ? ' sidebar--open' : ''}`}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              setIsNavOpen(false);
+              navButtonRef.current?.focus();
+            }
+          }}
+        >
           <div class="sidebar__section">
             <div class="sidebar__title">Pages</div>
-            <nav class="nav">{renderNavNodes(navTree)}</nav>
+            <nav class="nav" aria-label="Pages">
+              {renderNavNodes(navTree)}
+            </nav>
           </div>
         </aside>
 
@@ -429,7 +446,7 @@ export function App() {
                       name="theme"
                       value={opt.id}
                       checked={themePreference === opt.id}
-                      onChange={() => setThemePreference(opt.id)}
+                      onChange={() => selectTheme(opt.id)}
                     />
                     <span class="theme-option__body">
                       <span class="theme-option__main">

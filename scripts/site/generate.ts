@@ -7,6 +7,7 @@ import { pathToFileURL } from 'node:url';
 
 import { parseGenerateArgs } from '../lib/args.ts';
 import { CONFIG_FILE, loadSiteConfig } from '../lib/config.ts';
+import { type PageOptions, readPageOptions } from '../lib/pageOptions.ts';
 
 import type { HeadingEntry } from './markdown/compile.ts';
 import { compileMarkdown } from './markdown/compile.ts';
@@ -180,7 +181,7 @@ const ensureDirForFile = async (filePath: string) => {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
 };
 
-type GeneratedPage = {
+type GeneratedPage = PageOptions & {
   slug: string;
   title: string;
   html: string;
@@ -213,7 +214,20 @@ export const generate = async ({
     );
   }
 
-  const files = await listMarkdownFiles(absInputDir);
+  const isExcluded = (file: string) => {
+    const rel = toPosixRelPath(path.relative(absInputDir, file));
+    return config.exclude.some(
+      (entry) => rel === entry || rel.startsWith(`${entry}/`),
+    );
+  };
+  const sources = new Map<string, { markdown: string; options: PageOptions }>();
+  for (const file of await listMarkdownFiles(absInputDir)) {
+    if (isExcluded(file)) continue;
+    const markdown = await fs.readFile(file, 'utf8');
+    const options = readPageOptions(markdown, path.relative(absInputDir, file));
+    if (!options.draft) sources.set(file, { markdown, options });
+  }
+  const files = [...sources.keys()];
 
   const indexDirs = new Set<string>();
   for (const filePath of files) {
@@ -229,9 +243,8 @@ export const generate = async ({
   const toSlug = makeToSlug({ indexDirs });
 
   const pages: GeneratedPage[] = [];
-  for (const filePath of files) {
+  for (const [filePath, { markdown, options }] of sources) {
     const rel = path.relative(absInputDir, filePath);
-    const markdown = await fs.readFile(filePath, 'utf8');
     const title = extractTitle(
       markdown,
       humanizeFromFilename(path.basename(filePath)),
@@ -246,7 +259,10 @@ export const generate = async ({
       assetsBase,
     });
 
+    if (pages.some((page) => page.slug === slug))
+      throw new Error(`Duplicate page route: ${slug}`);
     pages.push({
+      ...options,
       slug,
       title,
       html: compiled.html,
@@ -256,7 +272,9 @@ export const generate = async ({
 
   pages.sort((a, b) => a.slug.localeCompare(b.slug));
 
-  const assets = await listAssetFiles(absInputDir);
+  const assets = (await listAssetFiles(absInputDir)).filter(
+    (file) => !isExcluded(file),
+  );
   const assetPaths = new Set(
     assets.map((file) => toPosixRelPath(path.relative(absInputDir, file))),
   );
@@ -271,6 +289,8 @@ export const generate = async ({
     return assetsBase ? `${assetsBase.replace(/\/$/, '')}/${encoded}` : encoded;
   };
   const manifest = {
+    navigation: config.navigation,
+    defaultTheme: config.defaultTheme,
     description: config.description,
     logo: assetUrl('logo'),
     favicon: assetUrl('favicon'),
@@ -280,6 +300,42 @@ export const generate = async ({
       (pages.find((page) => page.slug === '/')?.title.trim() || 'dock5'),
     pages,
   };
+
+  const warnings = new Set<string>();
+  const checkLink = (href: string, source: string) => {
+    if (!href.startsWith('#/')) return;
+    const [route, fragment] = href.slice(1).split('#');
+    const target = pages.find(
+      (page) => page.slug === (route.replace(/\/$/, '') || '/'),
+    );
+    if (!target) warnings.add(`${source}: missing page ${href}`);
+    else if (
+      fragment &&
+      !target.headings.some((heading) => heading.id === fragment)
+    )
+      warnings.add(`${source}: missing heading ${href}`);
+  };
+  for (const page of pages) {
+    for (const match of page.html.matchAll(/<a\b[^>]*\bhref="([^"]*)"/g)) {
+      checkLink(
+        match[1]
+          .replaceAll('&amp;', '&')
+          .replaceAll('&quot;', '"')
+          .replaceAll('&#39;', "'"),
+        page.slug,
+      );
+    }
+  }
+  for (const link of config.links) checkLink(link.href, CONFIG_FILE);
+  for (const route of Object.keys(config.navigation)) {
+    if (
+      !pages.some(
+        (page) => page.slug === route || page.slug.startsWith(`${route}/`),
+      )
+    )
+      warnings.add(`${CONFIG_FILE}: navigation route has no pages: ${route}`);
+  }
+  for (const warning of warnings) console.warn(`Warning: ${warning}`);
 
   let assetCount = 0;
   if (absAssetsDir && assetsBase) {
@@ -299,7 +355,13 @@ export const generate = async ({
     'utf8',
   );
 
-  return { absInputDir, absOutFile, pageCount: pages.length, assetCount };
+  return {
+    absInputDir,
+    absOutFile,
+    pageCount: pages.length,
+    assetCount,
+    warnings: [...warnings],
+  };
 };
 
 export const runCli = async (argv: string[] = process.argv.slice(2)) => {

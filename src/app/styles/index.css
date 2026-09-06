@@ -855,7 +855,20 @@ body {
   height: auto;
 }
 
+.mobile-nav-toggle {
+  display: none;
+}
+
 @media (max-width: 880px) {
+  .mobile-nav-toggle {
+    display: inline-flex;
+  }
+  .sidebar {
+    display: none;
+  }
+  .sidebar.sidebar--open {
+    display: block;
+  }
   .topbar {
     flex-wrap: wrap;
   }

@@ -18,13 +18,44 @@ Place an optional `dock5.config.json` in your docs folder to configure the site:
 
 - `title`: Site name used in the header and browser titles. Defaults to the root
   page's title, or `dock5` if there isn't one.
+- `defaultTheme`: `"dark"` (Black, the default) or `"light"` (White). A visitor’s saved choice takes precedence.
 - `description`: A short site description for page metadata.
 - `logo`: Image shown beside the site name.
 - `favicon`: Browser tab icon. Defaults to Dock5's icon.
+- `navigation`: Label and order overrides keyed by page or folder route.
+- `exclude`: Docs-relative file or folder paths to omit, including their assets.
 - `links`: Header links, each with a `label` and `href` (web URL, email URL, or `#/page`).
 
 Image paths are relative to the docs folder, for example `"logo": "./assets/logo.svg"`.
 All options are optional.
+
+## Navigation
+
+Pages are discovered automatically and grouped by folder. Override a group or page
+without listing its children:
+
+```json
+{
+  "navigation": { "/guides": { "label": "Learn", "order": 1 } },
+  "exclude": ["drafts/"]
+}
+```
+
+For individual pages, use frontmatter:
+
+```yaml
+---
+sidebarLabel: Getting started
+sidebarOrder: 1
+sidebarHidden: false
+draft: false
+---
+```
+
+Lower order values come first; unordered entries follow alphabetically.
+Config overrides take precedence. `sidebarHidden` keeps the page accessible by URL;
+`draft` removes it from the build. Exclusions accept exact paths, not globs.
+Missing internal pages and headings produce build warnings.
 
 ## Inputs
 
@@ -43,5 +74,4 @@ All options are optional.
 
 ## Planned (not implemented yet)
 
-- Ordering and exclusions.
 - Optional “trusted docs” mode (raw HTML) with explicit documentation.

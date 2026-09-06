@@ -4,6 +4,9 @@ import { parseSiteConfig } from '../../src/docs/siteConfig.ts';
 describe('site configuration', () => {
   it('supplies defaults without requiring a config file', () => {
     expect(parseSiteConfig({})).toEqual({
+      navigation: {},
+      exclude: [],
+      defaultTheme: 'dark',
       title: null,
       description: null,
       logo: null,
@@ -24,6 +27,9 @@ describe('site configuration', () => {
         ],
       }),
     ).toEqual({
+      navigation: {},
+      exclude: [],
+      defaultTheme: 'dark',
       title: 'Project',
       description: 'Docs',
       logo: 'assets/logo.svg',
@@ -35,6 +41,12 @@ describe('site configuration', () => {
     });
   });
   it.each([
+    [{ navigation: { '/guides': { order: 'first' } } }, 'order'],
+    [{ navigation: { guides: { label: 'Learn' } } }, 'routes'],
+    [{ exclude: ['../private'] }, 'exclude'],
+    [{ exclude: null }, 'exclude'],
+    [{ defaultTheme: 'system' }, 'defaultTheme'],
+    [{ defaultTheme: null }, 'defaultTheme'],
     [{ titel: 'typo' }, 'unknown option'],
     [{ description: 42 }, 'description'],
     [{ logo: '../outside.svg' }, 'logo'],

@@ -7,9 +7,12 @@
 //
 // For a nicer sidebar UX we group pages by folder segments and expose nodes
 // that can be expanded/collapsed (chevrons) in the UI.
+
 import type { DocsPage } from './manifest';
+import type { NavOverride } from './siteConfig';
 
 export type NavNode = {
+  order?: number;
   // Unique path key (always starts with "/").
   key: string;
   // Display label.
@@ -28,6 +31,10 @@ const humanizeSegment = (segment: string) => {
 };
 
 const compareNodes = (a: NavNode, b: NavNode) => {
+  const order =
+    (a.order ?? Number.POSITIVE_INFINITY) -
+    (b.order ?? Number.POSITIVE_INFINITY);
+  if (order && !Number.isNaN(order)) return order;
   // Keep the root page at the top.
   if (a.key === '/') return -1;
   if (b.key === '/') return 1;
@@ -44,7 +51,11 @@ const sortTree = (nodes: NavNode[]) => {
   for (const node of nodes) sortTree(node.children);
 };
 
-export const buildNavTree = (pages: DocsPage[]) => {
+export const buildNavTree = (
+  allPages: DocsPage[],
+  overrides: Record<string, NavOverride> = {},
+) => {
+  const pages = allPages.filter((page) => !page.sidebarHidden);
   /** @type {Map<string, NavNode>} */
   const nodesByKey = new Map<string, NavNode>();
   const childKeysByParent = new WeakMap<NavNode, Set<string>>();
@@ -128,6 +139,11 @@ export const buildNavTree = (pages: DocsPage[]) => {
     }
   }
 
+  for (const node of nodesByKey.values()) {
+    const override = overrides[node.key];
+    node.title = override?.label ?? node.page?.sidebarLabel ?? node.title;
+    node.order = override?.order ?? node.page?.sidebarOrder;
+  }
   sortTree(root.children);
   return root.children;
 };

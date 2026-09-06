@@ -274,3 +274,65 @@ it('resolves identity assets relative to the docs folder and rejects missing fil
     await fs.rm(root, { recursive: true, force: true });
   }
 });
+
+it('excludes drafts and private folders, retains hidden pages, and reports missing links', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dock5-navigation-'));
+  try {
+    const inputDir = path.join(root, 'docs');
+    const outFile = path.join(root, 'manifest.json');
+    const assetsDir = path.join(root, 'assets');
+    await fs.mkdir(path.join(inputDir, 'private'), { recursive: true });
+    await fs.mkdir(path.join(inputDir, 'guides'));
+    await fs.writeFile(
+      path.join(inputDir, 'dock5.config.json'),
+      JSON.stringify({
+        exclude: ['private/'],
+        navigation: { '/guides': { label: 'Learn', order: 1 } },
+        defaultTheme: 'light',
+      }),
+    );
+    await fs.writeFile(
+      path.join(inputDir, 'index.md'),
+      '# Home\n\n[Guides](./guides/) [Draft](./draft.md) [Hidden](./hidden.md) [Missing heading](./guides/#missing)',
+    );
+    await fs.writeFile(
+      path.join(inputDir, 'draft.md'),
+      '---\ndraft: true\n---\n# Draft',
+    );
+    await fs.writeFile(
+      path.join(inputDir, 'hidden.md'),
+      '---\nsidebarHidden: true\n---\n# Hidden',
+    );
+    await fs.writeFile(
+      path.join(inputDir, 'guides/README.md'),
+      '---\nsidebarLabel: Start\nsidebarOrder: 2\n---\n# Guide\n\n[Home](/index.md)\n\n## Install',
+    );
+    await fs.writeFile(path.join(inputDir, 'private/index.md'), '# Private');
+    await fs.writeFile(path.join(inputDir, 'private/secret.txt'), 'private');
+    const result = await generate({ inputDir, outFile, assetsDir });
+    const manifest = JSON.parse(await fs.readFile(outFile, 'utf8'));
+    expect(manifest.pages.map((page: { slug: string }) => page.slug)).toEqual([
+      '/',
+      '/guides',
+      '/hidden',
+    ]);
+    expect(manifest.defaultTheme).toBe('light');
+    expect(manifest.navigation['/guides'].label).toBe('Learn');
+    expect(manifest.pages[0].html).toContain('href="#/guides"');
+    expect(manifest.pages[1]).toMatchObject({
+      sidebarLabel: 'Start',
+      sidebarOrder: 2,
+    });
+    expect(manifest.pages[1].html).toContain('href="#/"');
+    expect(manifest.pages[2].sidebarHidden).toBe(true);
+    expect(result.warnings).toEqual([
+      '/: missing page #/draft',
+      '/: missing heading #/guides#missing',
+    ]);
+    await expect(
+      fs.access(path.join(assetsDir, 'private/secret.txt')),
+    ).rejects.toThrow();
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});

@@ -6,6 +6,9 @@ import docsManifestJson from '@/generated/docs.json';
 import type { SiteConfig } from './siteConfig';
 
 export type DocsPage = {
+  sidebarLabel?: string;
+  sidebarOrder?: number;
+  sidebarHidden?: boolean;
   slug: string;
   title: string;
   html: string;
@@ -16,7 +19,7 @@ export type DocsPage = {
   }>;
 };
 
-export type DocsManifest = Omit<SiteConfig, 'title'> & {
+export type DocsManifest = Omit<SiteConfig, 'title' | 'exclude'> & {
   title: string;
   pages: DocsPage[];
 };
@@ -43,6 +46,11 @@ export function assertIsDocsManifest(
       `${key} must be a string or null`,
     );
   }
+  assert(
+    value.defaultTheme === 'dark' || value.defaultTheme === 'light',
+    'defaultTheme must be dark or light',
+  );
+  assert(isRecord(value.navigation), 'navigation must be an object');
   assert(Array.isArray(value.links), 'links must be an array');
   for (const link of value.links) {
     assert(

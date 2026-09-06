@@ -7,6 +7,8 @@ import { App } from './App';
 
 vi.mock('@/docs/manifest', () => ({
   docsManifest: {
+    navigation: {},
+    defaultTheme: 'dark',
     title: 'My Project',
     logo: 'docs-assets/logo.svg',
     description: 'Project docs',
@@ -132,5 +134,79 @@ it('restores default identity when optional settings are removed', () => {
     ).toBe(new URL('icon.png', document.baseURI).href);
   } finally {
     Object.assign(docsManifest, original);
+  }
+});
+
+it.each([null, 'invalid', 'dark'])(
+  'uses the configured theme unless a valid preference is saved (%s)',
+  (saved) => {
+    const setItem = vi.fn();
+    vi.stubGlobal('localStorage', { getItem: () => saved, setItem });
+    docsManifest.defaultTheme = 'light';
+    try {
+      act(() => render(<App />, container));
+      expect(document.documentElement.dataset.theme).toBe(
+        saved === 'dark' ? 'dark' : 'light',
+      );
+      expect(setItem).not.toHaveBeenCalled();
+    } finally {
+      docsManifest.defaultTheme = 'dark';
+    }
+  },
+);
+
+it('opens the mobile navigation and closes it on page selection or Escape', () => {
+  act(() => render(<App />, container));
+  const button =
+    container.querySelector<HTMLButtonElement>('.mobile-nav-toggle');
+  act(() => button?.click());
+  expect(button?.getAttribute('aria-expanded')).toBe('true');
+  expect(container.querySelector('.sidebar--open')).not.toBeNull();
+  act(() =>
+    container
+      .querySelector<HTMLAnchorElement>('.sidebar a[href="#/guide"]')
+      ?.click(),
+  );
+  expect(button?.getAttribute('aria-expanded')).toBe('false');
+  act(() => button?.click());
+  act(
+    () =>
+      void container
+        .querySelector('.sidebar')
+        ?.dispatchEvent(
+          new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+        ),
+  );
+  expect(button?.getAttribute('aria-expanded')).toBe('false');
+  expect(document.activeElement).toBe(button);
+});
+
+it('lets folder page links navigate while the separate toggle expands children', () => {
+  docsManifest.pages.push({
+    slug: '/guide/child',
+    title: 'Child',
+    html: '',
+    headings: [],
+  });
+  try {
+    act(() => render(<App />, container));
+    const link = container.querySelector<HTMLAnchorElement>(
+      '.sidebar a[href="#/guide"]',
+    );
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+    act(() => {
+      link?.dispatchEvent(event);
+    });
+    expect(event.defaultPrevented).toBe(false);
+    act(() =>
+      link?.parentElement
+        ?.querySelector<HTMLButtonElement>('.nav__toggle')
+        ?.click(),
+    );
+    expect(
+      container.querySelector('.sidebar a[href="#/guide/child"]'),
+    ).not.toBeNull();
+  } finally {
+    docsManifest.pages.pop();
   }
 });

@@ -7,10 +7,18 @@ export const siteMetadataPlugin = (manifestPath: string): Plugin => ({
   async transformIndexHtml(html) {
     const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8')) as {
       title: string;
+      defaultTheme?: 'dark' | 'light';
       description?: string | null;
       favicon?: string | null;
     };
-    const tags: HtmlTagDescriptor[] = [];
+    const defaultTheme = manifest.defaultTheme === 'light' ? 'light' : 'dark';
+    const tags: HtmlTagDescriptor[] = [
+      {
+        tag: 'script',
+        children: `(()=>{let theme="${defaultTheme}";try{const saved=localStorage.getItem('dock5.theme');if(saved==='dark'||saved==='light')theme=saved}catch{}document.documentElement.dataset.theme=theme})()`,
+        injectTo: 'head-prepend',
+      },
+    ];
     if (manifest.description)
       tags.push({
         tag: 'meta',

@@ -53,7 +53,10 @@ export const resolveMarkdownRoute = ({
   const clean = targetPath.replace(/^\.\//, '');
   const cleanNoLeadingSlash = clean.startsWith('/') ? clean.slice(1) : clean;
   const resolved = path.normalize(
-    path.join(path.dirname(currentRelPath), cleanNoLeadingSlash),
+    path.join(
+      clean.startsWith('/') ? '' : path.dirname(currentRelPath),
+      cleanNoLeadingSlash,
+    ),
   );
   return toSlug(toPosixPath(resolved));
 };
@@ -83,9 +86,17 @@ export const rewriteHref = (
 
   // External links must never be interpreted as local Markdown or assets.
   const isExternal = href.includes(':') || href.startsWith('//');
-  if (!isExternal && href.toLowerCase().endsWith('.md')) {
+  if (
+    !isExternal &&
+    (href.toLowerCase().endsWith('.md') ||
+      href.endsWith('/') ||
+      href === '.' ||
+      href === '..')
+  ) {
     const slug = resolveMarkdownRoute({
-      targetPath: href,
+      targetPath: href.toLowerCase().endsWith('.md')
+        ? href
+        : `${href.replace(/\/$/, '')}/index.md`,
       currentRelPath: ctx.currentRelPath,
       toSlug: ctx.toSlug,
     });

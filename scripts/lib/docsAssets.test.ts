@@ -6,7 +6,10 @@ import { expect, it } from 'vitest';
 import { docsAssetsPlugin } from './docsAssets.ts';
 
 it('copies staged assets to a custom Vite output and replaces stale public assets', async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dock5-build-'));
+  // Vite resolves inputs to real paths; its root must match even when TEMP is an alias.
+  const root = await fs.realpath(
+    await fs.mkdtemp(path.join(os.tmpdir(), 'dock5-build-')),
+  );
   try {
     const source = path.join(root, 'staged');
     const outDir = path.join(root, 'custom-output');

@@ -1,0 +1,33 @@
+{
+  "title": "The Almost Reliable Space Handbook",
+  "description": "Real space facts and distinctly fictional travel advice.",
+  "logo": "./assets/icon.svg",
+  "favicon": "./assets/icon.svg",
+  "defaultTheme": "dark",
+  "links": [
+    {
+      "label": "Departure lounge",
+      "href": "#/travel"
+    },
+    {
+      "label": "Space facts",
+      "href": "#/facts"
+    }
+  ],
+  "navigation": {
+    "/": {
+      "order": 0
+    },
+    "/travel": {
+      "label": "Travel desk",
+      "order": 1
+    },
+    "/facts": {
+      "label": "The actual universe",
+      "order": 2
+    }
+  },
+  "exclude": [
+    "unpublished/"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "title": "Waypoint",
+  "description": "Small trips to places that do not exist.",
+  "defaultTheme": "light",
+  "links": [
+    {
+      "label": "Destinations",
+      "href": "#/destinations"
+    },
+    {
+      "label": "Packing",
+      "href": "#/packing"
+    }
+  ],
+  "navigation": {
+    "/": {
+      "order": 0
+    },
+    "/destinations": {
+      "label": "Go somewhere",
+      "order": 1
+    }
+  }
+}

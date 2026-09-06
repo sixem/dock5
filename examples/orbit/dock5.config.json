@@ -1,0 +1,22 @@
+{
+  "title": "Orbit API",
+  "description": "A fictional satellite scheduling API.",
+  "links": [
+    {
+      "label": "API reference",
+      "href": "#/reference/v1/missions"
+    }
+  ],
+  "navigation": {
+    "/": {
+      "order": 0
+    },
+    "/quickstart": {
+      "order": 1
+    },
+    "/reference": {
+      "label": "API reference",
+      "order": 2
+    }
+  }
+}

@@ -10,17 +10,6 @@ import { generate } from './generate.ts';
 const STAGING_ROOT = path.join('.dock5', 'build');
 const STAGING_MANIFEST = path.join(STAGING_ROOT, 'generated', 'docs.json');
 const STAGING_ASSETS_DIR = path.join(STAGING_ROOT, 'docs-assets');
-const DIST_ASSETS_DIR = path.join('dist', 'docs-assets');
-
-const pathExists = async (targetPath: string) => {
-  try {
-    await fs.access(targetPath);
-    return true;
-  } catch {
-    return false;
-  }
-};
-
 const printHelp = () => {
   console.log(
     [
@@ -65,15 +54,9 @@ const main = async () => {
   await runPnpm(['exec', 'vite', 'build', ...viteArgs], {
     env: {
       DOCK5_MANIFEST_FILE: STAGING_MANIFEST,
+      DOCK5_ASSETS_DIR: STAGING_ASSETS_DIR,
     },
   });
-
-  // Copy staged docs assets into the static output.
-  await fs.mkdir(path.dirname(DIST_ASSETS_DIR), { recursive: true });
-  await fs.rm(DIST_ASSETS_DIR, { recursive: true, force: true });
-  if (await pathExists(STAGING_ASSETS_DIR)) {
-    await fs.cp(STAGING_ASSETS_DIR, DIST_ASSETS_DIR, { recursive: true });
-  }
 };
 
 await main().catch((err: unknown) => {

@@ -11,8 +11,11 @@ const OUT_FILE = 'src/generated/docs.json';
 
 const IGNORED_DIR_NAMES = new Set(['node_modules', '.git', 'dist', '.vite']);
 
-const shouldIgnoreWatchPath = (filePath: string) => {
-  const segments = filePath.split(/[\\/]+/g).filter(Boolean);
+const shouldIgnoreWatchPath = (docsDir: string, filePath: string) => {
+  const segments = path
+    .relative(path.resolve(docsDir), filePath)
+    .split(/[\\/]+/g)
+    .filter(Boolean);
   return segments.some(
     (segment) => segment.startsWith('.') || IGNORED_DIR_NAMES.has(segment),
   );
@@ -34,7 +37,7 @@ const printHelp = () => {
       '  -h, --help        Show this help',
       '',
       'Notes:',
-      '  The first "--" is required to pass args through pnpm scripts.',
+      '  A leading "--" is optional when passing args through pnpm scripts.',
       '  Use a second "--" to explicitly separate dock5 args from Vite args.',
     ].join('\n'),
   );
@@ -99,23 +102,11 @@ const main = async () => {
     onEvent: ({ eventType, filePath }) => {
       if (eventType === 'error') return;
 
-      if (filePath && shouldIgnoreWatchPath(filePath)) return;
+      if (filePath && shouldIgnoreWatchPath(docsDir, filePath)) return;
 
-      if (eventType === 'rename') {
-        // "rename" covers creates/deletes/renames. We only need to regenerate when:
-        // - a Markdown file name changes (page list / slug changes)
-        // - a directory changes (may affect page structure)
-        if (!filePath) return scheduleRegenerate();
-
-        const ext = path.extname(filePath).toLowerCase();
-        if (ext === '.md' || ext === '') scheduleRegenerate();
-        return;
-      }
-
-      // Only rebuild for Markdown edits.
-      if (!filePath || filePath.toLowerCase().endsWith('.md')) {
-        scheduleRegenerate();
-      }
+      // Assets are copied into public/docs-assets, so edits and renames need
+      // regeneration just like Markdown changes.
+      scheduleRegenerate();
     },
   });
 

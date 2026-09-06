@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import preact from '@preact/preset-vite';
 import { defineConfig } from 'vite';
+import { docsAssetsPlugin } from './scripts/lib/docsAssets.ts';
 
 const srcRoot = fileURLToPath(new URL('./src', import.meta.url));
 const defaultManifestPath = fileURLToPath(
@@ -20,7 +21,12 @@ export default defineConfig(({ command }) => ({
   //
   // Keep dev on "/" because Vite's dev server assumes an absolute base.
   base: command === 'build' ? './' : '/',
-  plugins: [preact()],
+  plugins: [
+    preact(),
+    process.env.DOCK5_ASSETS_DIR
+      ? docsAssetsPlugin(path.resolve(process.env.DOCK5_ASSETS_DIR))
+      : null,
+  ],
   resolve: {
     alias: [
       {

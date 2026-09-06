@@ -19,7 +19,7 @@ pnpm dev
 Dev mode:
 
 - Generates `src/generated/docs.json` from `docs/`
-- Watches `docs/` and regenerates on Markdown changes
+- Watches `docs/` and regenerates on Markdown and asset changes
 - Starts Vite
 
 ## Use a different docs folder

@@ -16,33 +16,20 @@ export const parseDocsArgs = (
   argv: string[],
   { defaultDocsDir }: ParseDocsArgsOptions,
 ): ParsedDocsArgs => {
-  // Parse only a small set of "docs selection" flags and return the rest so
-  // dev/build can forward args to Vite.
-  //
-  // Supported forms:
-  //   pnpm dev
-  //   pnpm dev -- ./path/to/docs
-  //   pnpm dev -- --docs ./path/to/docs
-  //   pnpm dev -- ./path/to/docs --open
-  //   pnpm dev -- --docs ./path/to/docs -- --open
-  //
-  // Notes:
-  // - In pnpm scripts, the first "--" is required to pass args to the script.
-  // - A second "--" is optional and can be used to explicitly separate
-  //   dock5 args from Vite args. We must NOT forward that separator to Vite.
-
-  const separatorIndex = argv.indexOf('--');
-  const docsArgv = separatorIndex >= 0 ? argv.slice(0, separatorIndex) : argv;
-  const forwardedArgv =
-    separatorIndex >= 0 ? argv.slice(separatorIndex + 1) : null;
-
-  let docsDirFromFlag: string | null = null;
+  // pnpm forwards an optional leading "--" to the script. A later separator
+  // marks arguments that belong exclusively to Vite.
+  const args = argv[0] === '--' ? argv.slice(1) : argv;
+  let docsDir = defaultDocsDir;
+  let hasDocsDir = false;
   let help = false;
+  const rest: string[] = [];
 
-  const remainingDocsArgv: string[] = [];
-
-  for (let i = 0; i < docsArgv.length; i += 1) {
-    const arg = docsArgv[i] ?? '';
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (arg === '--') {
+      rest.push(...args.slice(i + 1));
+      break;
+    }
 
     if (arg === '-h' || arg === '--help') {
       help = true;
@@ -50,40 +37,26 @@ export const parseDocsArgs = (
     }
 
     if (arg === '--docs' || arg === '--input') {
-      const next = docsArgv[i + 1];
-      if (typeof next !== 'string' || !next || next.startsWith('-')) {
+      const next = args[i + 1];
+      if (!next || next.startsWith('-')) {
         throw new Error(`Invalid args: ${arg} requires a directory`);
       }
-
-      docsDirFromFlag = next;
+      docsDir = next;
+      hasDocsDir = true;
       i += 1;
       continue;
     }
 
-    remainingDocsArgv.push(arg);
-  }
-
-  // If no explicit flag is provided, treat the first non-flag token as the
-  // docs directory, and forward any remaining tokens to Vite.
-  let docsDirFromPositional: string | null = null;
-  const remainingAfterPositional: string[] = [];
-
-  for (let i = 0; i < remainingDocsArgv.length; i += 1) {
-    const arg = remainingDocsArgv[i] ?? '';
-
-    if (!docsDirFromPositional && !arg.startsWith('-') && arg !== '--') {
-      docsDirFromPositional = arg;
+    // Only a leading positional can select docs. Once Vite arguments begin,
+    // their values (ports, hosts, output paths, etc.) must remain untouched.
+    if (!hasDocsDir && rest.length === 0 && !arg.startsWith('-')) {
+      docsDir = arg;
+      hasDocsDir = true;
       continue;
     }
 
-    remainingAfterPositional.push(arg);
+    rest.push(arg);
   }
-
-  const docsDir = docsDirFromFlag ?? docsDirFromPositional ?? defaultDocsDir;
-
-  // If the user provided an explicit separator, forward only the args after it.
-  // Otherwise, forward any leftover args that weren't consumed as docs args.
-  const rest = forwardedArgv ?? remainingAfterPositional;
 
   return { docsDir, rest, help };
 };
@@ -117,7 +90,7 @@ export const parseGenerateArgs = (
 
   try {
     parsed = parseArgs({
-      args: argv,
+      args: argv[0] === '--' ? argv.slice(1) : argv,
       options: {
         help: { type: 'boolean', short: 'h' },
         input: { type: 'string' },

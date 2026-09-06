@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 // Smoke test to ensure the test runner + DOM environment are wired correctly.
 import { describe, expect, it } from 'vitest';
 

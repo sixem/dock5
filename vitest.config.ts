@@ -11,8 +11,8 @@ export default defineConfig({
     },
   },
   test: {
-    // "happy-dom" is a fast, lightweight DOM implementation.
-    environment: 'happy-dom',
-    include: ['**/*.test.ts', '**/*.test.tsx'],
+    // Browser tests opt into happy-dom with a per-file environment comment.
+    environment: 'node',
+    include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.{ts,tsx}'],
   },
 });

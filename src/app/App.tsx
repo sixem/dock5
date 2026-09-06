@@ -33,9 +33,11 @@ function applyTheme(theme: ResolvedTheme) {
 }
 
 function loadThemePreference(): ThemePreference {
-  const stored = localStorage.getItem('dock5.theme');
-  if (stored === 'light' || stored === 'dark') {
-    return stored;
+  try {
+    const stored = localStorage.getItem('dock5.theme');
+    if (stored === 'light' || stored === 'dark') return stored;
+  } catch {
+    // Storage may be disabled by browser privacy settings.
   }
 
   return 'dark';
@@ -63,7 +65,11 @@ export function App() {
   }, [resolvedTheme]);
 
   useEffect(() => {
-    localStorage.setItem('dock5.theme', themePreference);
+    try {
+      localStorage.setItem('dock5.theme', themePreference);
+    } catch {
+      // The selected theme still works for this session without persistence.
+    }
   }, [themePreference]);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -93,7 +99,7 @@ export function App() {
     previousPathRef.current = path;
 
     // Defer to ensure the new page content is in the DOM.
-    requestAnimationFrame(() => {
+    const frame = requestAnimationFrame(() => {
       if (fragment) {
         const decodedFragment = (() => {
           try {
@@ -117,13 +123,14 @@ export function App() {
         window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
       }
     });
+    return () => cancelAnimationFrame(frame);
   }, [path, currentPage?.slug, fragment]);
 
   useEffect(() => {
     if (!isSettingsOpen) return;
 
     // Move focus into the dialog so keyboard users don't "lose" focus behind the overlay.
-    requestAnimationFrame(() => {
+    const frame = requestAnimationFrame(() => {
       const panel = settingsPanelRef.current;
       if (!panel) return;
 
@@ -180,7 +187,10 @@ export function App() {
     };
 
     document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener('keydown', onKeyDown);
+    };
   }, [isSettingsOpen]);
 
   useEffect(() => {

@@ -64,6 +64,7 @@ pnpm generate -- ./my-docs
 - `pnpm lint` - Run lint checks
 - `pnpm format` - Format code
 - `pnpm typecheck` - Run TypeScript checks
+- `pnpm check` - Run all project checks
 
 ## Markdown Behavior
 
@@ -75,3 +76,5 @@ pnpm generate -- ./my-docs
 ## Contributing
 
 Contributions are welcome. Keep changes focused and include docs/tests when behavior changes.
+
+Run `pnpm check` before submitting changes.

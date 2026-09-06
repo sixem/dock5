@@ -72,35 +72,28 @@ export const rewriteHref = (
   const { path: targetPath, fragment } = parseLinkTarget(value);
 
   let href = safeUrl(targetPath, { kind: 'href' });
-  if (href?.toLowerCase().endsWith('.md')) {
+  if (!targetPath && fragment) {
+    if (hashShorthand === 'route') {
+      const route = fragment.startsWith('/') ? fragment : `/${fragment}`;
+      return `#${route}`;
+    }
+    return `#${ctx.currentSlug}#${fragment}`;
+  }
+  if (!href) return '';
+
+  // External links must never be interpreted as local Markdown or assets.
+  const isExternal = href.includes(':') || href.startsWith('//');
+  if (!isExternal && href.toLowerCase().endsWith('.md')) {
     const slug = resolveMarkdownRoute({
       targetPath: href,
       currentRelPath: ctx.currentRelPath,
       toSlug: ctx.toSlug,
     });
-    href = `#${slug}${fragment ? `#${fragment}` : ''}`;
-  } else if (
-    href &&
-    ctx.assetsBase &&
-    !href.startsWith('#') &&
-    !href.startsWith('/')
-  ) {
+    href = `#${slug}`;
+  } else if (!isExternal && ctx.assetsBase && !href.startsWith('/')) {
     const resolved = resolveAssetRelPath(href, ctx);
     if (resolved) href = toAssetUrl(resolved, ctx);
-  } else if (!href && fragment) {
-    if (hashShorthand === 'route') {
-      const route = fragment.startsWith('/') ? fragment : `/${fragment}`;
-      href = `#${route}`;
-    } else {
-      // In-page anchor: rewrite "#section" into "#/page#section".
-      href = `#${ctx.currentSlug}#${fragment}`;
-    }
-  } else if (href?.startsWith('#')) {
-    // Same-page anchor.
-    href = `#${ctx.currentSlug}${href}`;
-  } else if (href && fragment) {
-    href = `${href}#${fragment}`;
   }
 
-  return href;
+  return `${href}${fragment ? `#${fragment}` : ''}`;
 };

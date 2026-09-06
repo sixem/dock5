@@ -16,7 +16,7 @@ const DEFAULT_ASSETS_BASE = 'docs-assets';
 
 const printHelp = () => {
   // Keep this short; full docs can live in README/docs later.
-  // pnpm scripts require the "--" separator for args.
+  // A leading "--" separator is optional in pnpm scripts.
   console.log(
     [
       'dock5 generator',

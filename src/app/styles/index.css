@@ -158,11 +158,16 @@ body {
 
 .app {
   height: 100vh;
-  height: 100dvh;
   display: grid;
   grid-template-rows: auto 1fr;
   background: var(--bg);
   overflow: hidden;
+}
+
+@supports (height: 100dvh) {
+  .app {
+    height: 100dvh;
+  }
 }
 
 .topbar {
@@ -543,17 +548,6 @@ body {
   padding-left: calc(10px + var(--nav-control) + var(--nav-gap));
 }
 
-.nav__link:not(.nav__link--active):not(.nav__link--ancestor):hover .nav__pill {
-  background: transparent;
-  border-color: transparent;
-  color: color-mix(in oklab, var(--nav-active-text), var(--text) 24%);
-}
-
-.nav__link:not(.nav__link--active):not(.nav__link--ancestor):hover
-  .nav__pill::before {
-  opacity: 0.6;
-}
-
 .nav__link--active .nav__pill {
   background: var(--nav-active-bg);
   border-color: var(--nav-active-border);
@@ -566,12 +560,6 @@ body {
   opacity: 1;
 }
 
-.nav__link--active:hover .nav__pill {
-  background: var(--nav-active-bg);
-  border-color: var(--nav-active-border);
-  color: var(--text);
-}
-
 .nav__link--ancestor .nav__pill {
   background: transparent;
   border-color: transparent;
@@ -582,6 +570,12 @@ body {
 .nav__link--ancestor .nav__pill::before {
   background: color-mix(in oklab, var(--nav-active-rail), var(--border) 45%);
   opacity: 0.8;
+}
+
+.nav__link--active:hover .nav__pill {
+  background: var(--nav-active-bg);
+  border-color: var(--nav-active-border);
+  color: var(--text);
 }
 
 .nav__link--ancestor:hover .nav__pill {
@@ -609,6 +603,17 @@ body {
   background: var(--interactive);
   border-color: var(--border);
   color: var(--text);
+}
+
+.nav__link:not(.nav__link--active):not(.nav__link--ancestor):hover .nav__pill {
+  background: transparent;
+  border-color: transparent;
+  color: color-mix(in oklab, var(--nav-active-text), var(--text) 24%);
+}
+
+.nav__link:not(.nav__link--active):not(.nav__link--ancestor):hover
+  .nav__pill::before {
+  opacity: 0.6;
 }
 
 .content {

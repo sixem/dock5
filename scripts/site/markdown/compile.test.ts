@@ -18,7 +18,7 @@ const compile = (
     markdown,
     currentRelPath,
     currentSlug,
-    toSlug: (p) => `/${p.replace(/\\.md$/i, '').replaceAll('\\', '/')}`,
+    toSlug: (p) => `/${p.replace(/\.md$/i, '').replaceAll('\\', '/')}`,
     assetsBase,
   });
 
@@ -169,6 +169,30 @@ describe('compileMarkdown (sanitization)', () => {
 });
 
 describe('compileMarkdown (assets)', () => {
+  it.each([
+    ['https://example.com/guide#section', 'https://example.com/guide#section'],
+    [
+      'https://example.com/README.md#intro',
+      'https://example.com/README.md#intro',
+    ],
+    ['//example.com/README.md', '//example.com/README.md'],
+    ['./file.pdf?download=1#page=2', 'docs-assets/file.pdf?download=1#page=2'],
+    ['./other.md#section', '#/other#section'],
+    ['#section', '#/page#section'],
+    ['javascript:bad#section', ''],
+  ])('preserves link destinations for %s', (target, expected) => {
+    const result = compile(`[Link](${target})`, { assetsBase: 'docs-assets' });
+    expect(result.html).toContain(`href="${expected}"`);
+  });
+
+  it('preserves fragments in HTML links too', () => {
+    const result = compile(
+      '<p><a href="https://example.com/guide#section">Link</a></p>',
+      { assetsBase: 'docs-assets' },
+    );
+    expect(result.html).toContain('href="https://example.com/guide#section"');
+  });
+
   it('rewrites relative Markdown images to the assets base', () => {
     const result = compile('![Logo](./images/logo.png)', {
       currentRelPath: 'guides/page.md',

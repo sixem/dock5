@@ -23,3 +23,17 @@ forge build --config forge.json
 ```
 
 A successful build writes its output to `build/`. To change that directory, see [configuration](./reference/config.md).
+
+## A repeatable build
+
+1. Prepare the project.
+   - Keep source files in `src/`.
+   - Commit the configuration.
+2. Run the build.
+   - Inspect warnings before sharing the output.
+
+Use the [configuration reference][config] when changing defaults.
+
+~~Guess the output directory~~ Read the configuration first.
+
+[config]: ./reference/config.md

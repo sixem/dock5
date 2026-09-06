@@ -58,9 +58,9 @@ describe('compileMarkdown (tables)', () => {
     expect(result.html).toContain('text-align: center');
   });
 
-  it('preserves backslashes in cell content', () => {
+  it('preserves backslashes in code with escaped table pipes', () => {
     const result = compile(
-      ['| Pattern |', '|---|', '| `/^.{1,10}\\\\.(jpg|png)$/` |'].join('\n'),
+      ['| Pattern |', '|---|', '| `/^.{1,10}\\\\.(jpg\\|png)$/` |'].join('\n'),
     );
 
     expect(result.html).toContain('/^.{1,10}\\\\.(jpg|png)$/');
@@ -221,5 +221,44 @@ describe('compileMarkdown (assets)', () => {
 
     expect(result.html).toContain('src="https://example.com/a.png"');
     expect(result.html).toContain('href="#/setup"');
+  });
+});
+
+describe('standard Markdown', () => {
+  it('handles nested lists, ordered starts, references, and strikethrough', () => {
+    const result = compile(
+      '3. Parent\n   - **Nested** item\n   - Second item\n\n[Guide][guide]\n\n~~old~~\n\n[guide]: ./guide.md',
+    );
+    expect(result.html).toContain('<ol start="3">');
+    expect(result.html).toMatch(/<li>Parent\s*<ul>/);
+    expect(result.html).toContain('<strong>Nested</strong>');
+    expect(result.html).toContain('href="#/guide"');
+    expect(result.html).toContain('<s>old</s>');
+  });
+  it('supports setext headings and preserves duplicate section IDs', () => {
+    const result = compile('Title\n=====\n\n## Arrival\n\n## Arrival');
+    expect(result.html).not.toContain('<h1');
+    expect(result.headings.map((heading) => heading.id)).toEqual([
+      'arrival',
+      'arrival-2',
+    ]);
+  });
+  it('highlights named languages and safely falls back for unknown ones', () => {
+    const result = compile(
+      '```js\nconst x = "<script>";\n```\n\n```unknown-language\n<unsafe>\n```',
+    );
+    expect(result.html).toContain('hljs-keyword');
+    expect(result.html).toContain('language-js');
+    expect(result.html).toContain('&lt;unsafe&gt;');
+    expect(result.html).not.toContain('<script>');
+  });
+  it.each([
+    '[bad](javascript&#58;alert%281%29)',
+    '<a href="javascript:bad" onclick="alert(1)">bad</a>',
+    '<img src="data:text/html,bad" onerror="alert(1)">',
+  ])('blocks unsafe destinations in %s', (markdown) => {
+    const result = compile(markdown);
+    expect(result.html).not.toMatch(/(?:href|src)="(?:javascript|data):/i);
+    expect(result.html).not.toMatch(/\s(?:onerror|onclick)=/);
   });
 });

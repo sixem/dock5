@@ -8,6 +8,7 @@ import {
   collectNavPages,
 } from '@/docs/navTree';
 import { useHashLocation } from './routing/useHashLocation';
+import { Search } from './Search';
 
 type ResolvedTheme = 'light' | 'dark';
 type ThemePreference = ResolvedTheme;
@@ -134,6 +135,34 @@ export function App() {
     }
     return () => {
       for (const link of links) link.remove();
+    };
+  }, [currentPage]);
+  useEffect(() => {
+    const buttons: HTMLButtonElement[] = [];
+    let active = true;
+    for (const code of contentRef.current?.querySelectorAll<HTMLElement>(
+      'pre > code',
+    ) ?? []) {
+      const button = document.createElement('button');
+      button.className = 'copy-code';
+      button.type = 'button';
+      button.textContent = 'Copy';
+      button.setAttribute('aria-label', 'Copy code');
+      button.setAttribute('aria-live', 'polite');
+      button.onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(code.textContent ?? '');
+          if (active) button.textContent = 'Copied';
+        } catch {
+          if (active) button.textContent = 'Copy failed';
+        }
+      };
+      code.parentElement?.append(button);
+      buttons.push(button);
+    }
+    return () => {
+      active = false;
+      for (const button of buttons) button.remove();
     };
   }, [currentPage]);
   useEffect(() => {
@@ -355,6 +384,7 @@ export function App() {
         </div>
 
         <div class="topbar__actions">
+          <Search pages={docsManifest.pages} />
           <button
             ref={navButtonRef}
             class="button mobile-nav-toggle"

@@ -1,8 +1,5 @@
 // Text helpers used across the Markdown compiler.
 
-export const normalizeNewlines = (input: string) =>
-  input.replace(/\r\n/g, '\n');
-
 export const escapeHtml = (value: string) =>
   value
     .replaceAll('&', '&amp;')
@@ -30,9 +27,6 @@ export const escapeHtmlChar = (ch: string) => {
   }
 };
 
-export const stripFrontmatter = (markdown: string) =>
-  markdown.replace(/^---\s*\n[\s\S]*?\n---\s*\n/, '');
-
 export const slugify = (text: string) => {
   const lower = text.trim().toLowerCase();
   const cleaned = lower
@@ -53,14 +47,3 @@ export const stripInline = (text: string) =>
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
 
 export const stripHtmlTags = (value: string) => value.replace(/<[^>]*>/g, '');
-
-export const collapseWhitespace = (value: string) =>
-  value.replace(/\s+/g, ' ').trim();
-
-export const collapseInlineWhitespace = (value: string) =>
-  value.replace(/\s*\n\s*/g, ' ').trim();
-
-export const isBrOnlyLine = (trimmed: string) =>
-  /^<\/?br\s*\/?>$/i.test(trimmed);
-
-export const sanitizeLang = (lang: string) => lang.replace(/[^a-z0-9-]/gi, '');

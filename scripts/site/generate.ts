@@ -4,9 +4,11 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import MarkdownIt from 'markdown-it';
 
 import { parseGenerateArgs } from '../lib/args.ts';
 import { CONFIG_FILE, loadSiteConfig } from '../lib/config.ts';
+import { readFrontmatter } from '../lib/frontmatter';
 import { type PageOptions, readPageOptions } from '../lib/pageOptions.ts';
 
 import type { HeadingEntry } from './markdown/compile.ts';
@@ -37,25 +39,16 @@ const printHelp = () => {
   );
 };
 
+const titleParser = new MarkdownIt();
+
 export const extractTitle = (markdown: string, fallback: string) => {
-  // Frontmatter title:
-  // ---
-  // title: Hello
-  // ---
-  const frontmatterMatch = markdown.match(
-    /^---\s*\r?\n([\s\S]*?)\r?\n---\s*\r?\n/,
-  );
-  if (frontmatterMatch?.[1]) {
-    const titleLine = frontmatterMatch[1]
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .find((line) => line.toLowerCase().startsWith('title:'));
-    if (titleLine) {
-      const raw = titleLine.slice('title:'.length).trim();
-      const unquoted = raw.replace(/^['"]|['"]$/g, '').trim();
-      if (unquoted) return unquoted;
-    }
+  const { data, content } = readFrontmatter(markdown, fallback);
+  if ('title' in data) {
+    if (typeof data.title !== 'string' || !data.title.trim())
+      throw new Error(`${fallback}: title must be a non-empty string`);
+    return data.title.trim();
   }
+  markdown = content;
 
   // HTML <h1> (common in docs copied from READMEs).
   const htmlH1 = markdown.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i);
@@ -67,9 +60,19 @@ export const extractTitle = (markdown: string, fallback: string) => {
     if (text) return text;
   }
 
-  // First H1.
-  const h1 = markdown.match(/^#\s+(.+?)\s*$/m);
-  if (h1?.[1]) return h1[1].trim();
+  const tokens = titleParser.parse(markdown, {});
+  const index = tokens.findIndex(
+    (token) =>
+      token.type === 'heading_open' && token.tag === 'h1' && token.level === 0,
+  );
+  if (index >= 0) {
+    const title = (tokens[index + 1].children ?? [])
+      .filter((token) => ['text', 'code_inline', 'image'].includes(token.type))
+      .map((token) => token.content)
+      .join('')
+      .trim();
+    if (title) return title;
+  }
 
   return fallback;
 };

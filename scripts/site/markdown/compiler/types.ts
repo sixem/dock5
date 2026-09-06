@@ -38,10 +38,3 @@ export type HtmlBlock = {
   inner: string;
   nextIndex: number;
 };
-
-export type TableBlock = {
-  html: string;
-  nextIndex: number;
-};
-
-export type TableAlign = 'left' | 'right' | 'center' | null;

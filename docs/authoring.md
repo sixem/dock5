@@ -6,7 +6,7 @@ title: Authoring docs
 
 ## Titles
 
-- Prefer `title:` frontmatter for the sidebar label.
+- Use YAML frontmatter: `title:` names the page; `sidebarLabel:` overrides its navigation label.
 - Otherwise, the first `# H1` is used as the title.
 - The first `# H1` is treated as the title and is not rendered in the page body.
 
@@ -18,5 +18,10 @@ title: Authoring docs
 
 ## Safety model (current)
 
-- Raw HTML is treated as text (not executed).
+- A small HTML subset supports README logos, links, and alignment; other HTML is escaped.
 - URLs are sanitized (dangerous protocols are removed).
+
+## Search
+
+Search runs locally and finds page titles and section text. Published pages hidden
+from the sidebar remain searchable; drafts and excluded files are not published.

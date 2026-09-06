@@ -4,14 +4,12 @@ title: Markdown processor
 
 # Markdown processor
 
-Dock5 currently ships a small in-repo Markdown compiler:
+Dock5 uses markdown-it for Markdown, YAML for frontmatter, and Highlight.js for
+fenced code blocks. Parsing and highlighting happen at build time.
 
-- `scripts/site/markdown/compile.ts`
+Nested lists, reference links, tables, and strikethrough are supported. Escape
+pipes inside table cells as `\|`, including inside inline code.
 
-It supports a safe subset (MVP) and produces HTML at build-time.
-
-## Goals
-
-- Full GFM via a standard pipeline later (remark/rehype).
-- Keep raw HTML disabled by default.
-- Keep URL sanitization on by default.
+Relative document and asset links keep working. Unknown code languages render as
+plain text. A small HTML subset supports README logos, links, and alignment;
+other HTML is escaped and dangerous URL protocols are removed.

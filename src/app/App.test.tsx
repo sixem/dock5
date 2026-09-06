@@ -341,3 +341,39 @@ it('scrolls the reading pane on navigation and resolves section IDs within the a
     Object.assign(guide, original);
   }
 });
+
+it('copies the original code text and reports clipboard failures', async () => {
+  const guide = docsManifest.pages[1];
+  const original = { ...guide };
+  const clipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  Object.defineProperty(navigator, 'clipboard', {
+    configurable: true,
+    value: { writeText },
+  });
+  guide.html =
+    '<pre><code><span class="hljs-keyword">const</span> x = &quot;&lt;tag&gt;&quot;;\n</code></pre>';
+  try {
+    navigate('/guide');
+    act(() => render(<App />, container));
+    const button = container.querySelector<HTMLButtonElement>('.copy-code');
+    await act(async () => {
+      button?.click();
+      await Promise.resolve();
+    });
+    expect(writeText).toHaveBeenCalledWith('const x = "<tag>";\n');
+    expect(button?.textContent).toBe('Copied');
+    writeText.mockRejectedValueOnce(new Error('Denied'));
+    await act(async () => {
+      button?.click();
+      await Promise.resolve();
+    });
+    expect(button?.textContent).toBe('Copy failed');
+    navigate('/');
+    expect(container.querySelector('.copy-code')).toBeNull();
+  } finally {
+    Object.assign(guide, original);
+    if (clipboard) Object.defineProperty(navigator, 'clipboard', clipboard);
+    else Reflect.deleteProperty(navigator, 'clipboard');
+  }
+});

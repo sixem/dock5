@@ -91,6 +91,13 @@ export function App() {
   }, [path]);
 
   const currentPage = pagesBySlug.get(path) ?? pagesBySlug.get('/') ?? null;
+  useEffect(() => {
+    const pageTitle = currentPage?.title.trim() || 'Not found';
+    document.title =
+      pageTitle === docsManifest.title
+        ? docsManifest.title
+        : `${pageTitle} | ${docsManifest.title}`;
+  }, [currentPage?.title, docsManifest.title]);
   const previousPathRef = useRef(path);
 
   useEffect(() => {
@@ -283,7 +290,7 @@ export function App() {
     <div class="app">
       <header class="topbar">
         <div class="brand">
-          <span class="brand__name">dock5</span>
+          <span class="brand__name">{docsManifest.title}</span>
           <span class="brand__meta">docs engine</span>
         </div>
 

@@ -16,6 +16,7 @@ export type DocsPage = {
 };
 
 export type DocsManifest = {
+  title: string;
   pages: DocsPage[];
 };
 
@@ -31,6 +32,10 @@ export function assertIsDocsManifest(
   value: unknown,
 ): asserts value is DocsManifest {
   assert(isRecord(value), 'expected an object');
+  assert(
+    typeof value.title === 'string' && value.title.trim(),
+    'title must be a non-empty string',
+  );
   assert(Array.isArray(value.pages), 'pages must be an array');
 
   for (let i = 0; i < value.pages.length; i += 1) {

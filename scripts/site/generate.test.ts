@@ -164,3 +164,69 @@ describe('generate (README index fallback)', () => {
     }
   });
 });
+
+describe('generate (site title)', () => {
+  it.each([
+    { config: undefined, rootFile: 'index.md', expected: 'Root title' },
+    { config: undefined, rootFile: 'README.md', expected: 'Root title' },
+    { config: undefined, rootFile: null, expected: 'dock5' },
+    { config: '{}', rootFile: 'index.md', expected: 'Root title' },
+    {
+      config: '{"title":" My Project "}',
+      rootFile: 'index.md',
+      expected: 'My Project',
+    },
+  ])(
+    'resolves $expected from $rootFile and $config',
+    async ({ config, rootFile, expected }) => {
+      const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dock5-title-'));
+      try {
+        const inputDir = path.join(root, 'docs');
+        const outFile = path.join(root, 'manifest.json');
+        const assetsDir = path.join(root, 'assets');
+        await fs.mkdir(inputDir);
+        if (rootFile)
+          await fs.writeFile(path.join(inputDir, rootFile), '# Root title');
+        if (config !== undefined)
+          await fs.writeFile(path.join(inputDir, 'dock5.config.json'), config);
+        await generate({ inputDir, outFile, assetsDir });
+        expect(JSON.parse(await fs.readFile(outFile, 'utf8')).title).toBe(
+          expected,
+        );
+        await expect(
+          fs.access(path.join(assetsDir, 'dock5.config.json')),
+        ).rejects.toThrow();
+        // Configuration changes must be picked up on subsequent generation.
+        await fs.writeFile(
+          path.join(inputDir, 'dock5.config.json'),
+          '{"title":"Updated"}',
+        );
+        await generate({ inputDir, outFile, assetsDir });
+        expect(JSON.parse(await fs.readFile(outFile, 'utf8')).title).toBe(
+          'Updated',
+        );
+      } finally {
+        await fs.rm(root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.each(['{', 'null', '[]', '{"title":42}', '{"title":" "}'])(
+    'rejects invalid config %s',
+    async (config) => {
+      const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dock5-title-'));
+      try {
+        await fs.writeFile(path.join(root, 'dock5.config.json'), config);
+        await expect(
+          generate({
+            inputDir: root,
+            outFile: path.join(root, 'out.json'),
+            assetsDir: null,
+          }),
+        ).rejects.toThrow('Invalid dock5.config.json');
+      } finally {
+        await fs.rm(root, { recursive: true, force: true });
+      }
+    },
+  );
+});

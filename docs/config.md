@@ -6,6 +6,19 @@ title: Configuration
 
 dock5 is intentionally config-light right now.
 
+## Config file
+
+Place an optional `dock5.config.json` in your docs folder to configure the site:
+
+```json
+{ "title": "My Project" }
+```
+
+### Options
+
+- `title`: Site name used in the header and browser titles. Defaults to the root
+  page's title, or `dock5` if there isn't one.
+
 ## Inputs
 
 - Generator input: a folder of Markdown files (default `docs/`).
@@ -23,5 +36,5 @@ dock5 is intentionally config-light right now.
 
 ## Planned (not implemented yet)
 
-- A tiny config file for ordering/titles/exclusions.
+- Ordering and exclusions.
 - Optional “trusted docs” mode (raw HTML) with explicit documentation.

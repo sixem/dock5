@@ -13,6 +13,33 @@ import { compileMarkdown } from './markdown/compile.ts';
 const DEFAULT_OUT_FILE = path.join('src', 'generated', 'docs.json');
 const DEFAULT_ASSETS_DIR = path.join('public', 'docs-assets');
 const DEFAULT_ASSETS_BASE = 'docs-assets';
+const CONFIG_FILE = 'dock5.config.json';
+
+const readSiteTitle = async (inputDir: string): Promise<string | null> => {
+  let raw: string;
+  try {
+    raw = await fs.readFile(path.join(inputDir, CONFIG_FILE), 'utf8');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    throw error;
+  }
+
+  try {
+    const config: unknown = JSON.parse(raw);
+    if (!config || typeof config !== 'object' || Array.isArray(config)) {
+      throw new Error('expected an object');
+    }
+    if (!('title' in config)) return null;
+    if (typeof config.title !== 'string' || !config.title.trim()) {
+      throw new Error('title must be a non-empty string');
+    }
+    return config.title.trim();
+  } catch (error) {
+    throw new Error(
+      `Invalid ${CONFIG_FILE}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+};
 
 const printHelp = () => {
   // Keep this short; full docs can live in README/docs later.
@@ -159,6 +186,7 @@ const listAssetFiles = async (dir: string) => {
       if (entry.name.startsWith('.')) continue;
 
       const fullPath = path.join(current, entry.name);
+      if (current === dir && entry.name === CONFIG_FILE) continue;
       if (entry.isDirectory()) {
         if (skipDirs.has(entry.name)) continue;
         await walk(fullPath);
@@ -199,6 +227,7 @@ export const generate = async ({
 }) => {
   const absInputDir = path.resolve(inputDir);
   const absOutFile = path.resolve(outFile);
+  const configuredTitle = await readSiteTitle(absInputDir);
 
   const absAssetsDir = assetsDir ? path.resolve(assetsDir) : null;
   if (
@@ -255,6 +284,9 @@ export const generate = async ({
   pages.sort((a, b) => a.slug.localeCompare(b.slug));
 
   const manifest = {
+    title:
+      configuredTitle ??
+      (pages.find((page) => page.slug === '/')?.title.trim() || 'dock5'),
     pages,
   };
 

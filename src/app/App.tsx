@@ -540,7 +540,7 @@ export function App() {
             <div class="panel__header">
               <div class="panel__intro">
                 <div class="panel__eyebrow">Preferences</div>
-                <div class="panel__title">Interface Mode</div>
+                <div class="panel__title">Appearance</div>
               </div>
               <button
                 class="button button--icon button--close"

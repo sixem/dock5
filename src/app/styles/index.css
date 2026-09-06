@@ -260,6 +260,8 @@ body {
 }
 
 .button--icon {
+  border-width: 2px;
+  border-radius: 5px;
   width: 36px;
   height: 36px;
   padding: 0;
@@ -285,7 +287,9 @@ body {
 .overlay__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.82);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
   border: 0;
   padding: 0;
   cursor: pointer;
@@ -294,10 +298,10 @@ body {
 .panel {
   position: relative;
   width: min(460px, 100%);
-  border-radius: var(--r-lg);
+  border-radius: 14px;
   border: 1px solid var(--border-strong);
   background: var(--surface);
-  padding: 10px;
+  padding: 20px;
 }
 
 .panel__header {
@@ -305,9 +309,9 @@ body {
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
-  padding-bottom: 8px;
+  padding-bottom: 16px;
   border-bottom: 1px solid var(--border);
-  margin-bottom: 8px;
+  margin-bottom: 16px;
 }
 
 .panel__intro {
@@ -323,10 +327,9 @@ body {
 }
 
 .panel__title {
-  font-weight: 650;
-  letter-spacing: 0.01em;
-  text-transform: uppercase;
-  font-size: 12px;
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 1.4;
 }
 
 .panel__section {
@@ -358,7 +361,7 @@ body {
 
 .theme-list {
   display: grid;
-  gap: 6px;
+  gap: 10px;
 }
 
 .theme-option {
@@ -378,8 +381,9 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 8px;
-  border: 1px solid var(--border);
+  padding: 14px;
+  border: 2px solid var(--border);
+  border-radius: 9px;
   background: var(--interactive);
   position: relative;
 }
@@ -391,20 +395,19 @@ body {
 }
 
 .theme-option__name {
-  font-size: 12px;
-  font-weight: 620;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--text);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 .theme-option__desc {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-muted);
-  line-height: 1.2;
+  line-height: 1.5;
 }
 
 .theme-option__swatch {
+  border-radius: 5px;
   width: 36px;
   height: 20px;
   border: 1px solid var(--border-strong);
@@ -425,16 +428,13 @@ body {
 }
 
 .theme-option__input:checked + .theme-option__body {
-  border-color: var(--border);
+  border-color: var(--accent);
   background: var(--interactive);
 }
 
-.theme-option__input:checked + .theme-option__body::before {
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 2px;
-  background: var(--accent);
+.theme-option__input:focus-visible + .theme-option__body {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 
 .theme-option__input:checked + .theme-option__body .theme-option__name {

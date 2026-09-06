@@ -6,6 +6,8 @@ import docsManifestJson from '@/generated/docs.json';
 import type { SiteConfig } from './siteConfig';
 
 export type DocsPage = {
+  outline?: boolean;
+  pagination?: boolean;
   sidebarLabel?: string;
   sidebarOrder?: number;
   sidebarHidden?: boolean;
@@ -65,6 +67,12 @@ export function assertIsDocsManifest(
   for (let i = 0; i < value.pages.length; i += 1) {
     const page = value.pages[i];
     assert(isRecord(page), `pages[${i}] must be an object`);
+    for (const key of ['outline', 'pagination']) {
+      assert(
+        page[key] === undefined || typeof page[key] === 'boolean',
+        `pages[${i}].${key} must be a boolean`,
+      );
+    }
     assert(typeof page.slug === 'string', `pages[${i}].slug must be a string`);
     assert(
       typeof page.title === 'string',

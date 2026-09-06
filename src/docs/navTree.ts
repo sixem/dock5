@@ -162,3 +162,9 @@ export const collectAncestorKeys = (path: string) => {
 
   return ancestors;
 };
+
+export const collectNavPages = (nodes: NavNode[]): DocsPage[] =>
+  nodes.flatMap((node) => [
+    ...(node.page ? [node.page] : []),
+    ...collectNavPages(node.children),
+  ]);

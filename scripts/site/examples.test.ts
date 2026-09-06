@@ -75,6 +75,14 @@ it.each([
           fs.access(path.join(assetsDir, 'unpublished/budget.txt')),
         ).rejects.toThrow();
       }
+      if (name === 'waypoint')
+        expect(
+          manifest.pages.find((page) => page.slug === '/packing'),
+        ).toMatchObject({ outline: false, pagination: false });
+      if (name === 'fieldnotes')
+        expect(
+          manifest.pages.find((page) => page.slug === '/equipment')?.outline,
+        ).toBe(true);
       if (name === 'forge') expect(manifest.title).toBe('Forge');
     } finally {
       await fs.rm(temp, { recursive: true, force: true });

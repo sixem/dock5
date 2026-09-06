@@ -1,3 +1,8 @@
+---
+outline: false
+pagination: false
+---
+
 # Pack lightly, leave room
 
 ## Essentials

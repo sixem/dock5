@@ -1,3 +1,7 @@
+---
+outline: true
+---
+
 # What fits in a coat pocket
 
 - A pencil that writes in the cold.

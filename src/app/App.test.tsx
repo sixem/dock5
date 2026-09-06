@@ -22,7 +22,7 @@ vi.mock('@/docs/manifest', () => ({
 }));
 
 let container: HTMLDivElement;
-const requestFrame = vi.fn(() => 42);
+const requestFrame = vi.fn((_callback: FrameRequestCallback) => 42);
 const cancelFrame = vi.fn();
 
 beforeEach(() => {
@@ -208,5 +208,136 @@ it('lets folder page links navigate while the separate toggle expands children',
     ).not.toBeNull();
   } finally {
     docsManifest.pages.pop();
+  }
+});
+
+const navigate = (path: string) =>
+  act(() => {
+    history.replaceState(null, '', `#${path}`);
+    window.dispatchEvent(new Event('hashchange'));
+  });
+
+it('links the outline and heading permalinks to unique sections across navigation', () => {
+  const guide = docsManifest.pages[1];
+  const original = { ...guide };
+  Object.assign(guide, {
+    html: '<h2 id="arrival">Arrival</h2><h3 id="check-in">Check-in</h3><h2 id="arrival-2">Arrival</h2>',
+    headings: [
+      { depth: 2, id: 'arrival', text: 'Arrival' },
+      { depth: 3, id: 'check-in', text: 'Check-in' },
+      { depth: 2, id: 'arrival-2', text: 'Arrival' },
+    ],
+  });
+  try {
+    navigate('/guide');
+    act(() => render(<App />, container));
+    expect(
+      [...container.querySelectorAll('.page-outline a')].map((link) =>
+        link.getAttribute('href'),
+      ),
+    ).toEqual(['#/guide#arrival', '#/guide#check-in', '#/guide#arrival-2']);
+    expect(
+      container.querySelector('h2#arrival-2 a')?.getAttribute('href'),
+    ).toBe('#/guide#arrival-2');
+    expect(
+      container.querySelector('h2#arrival a')?.getAttribute('aria-label'),
+    ).toBe('Link to Arrival');
+    navigate('/');
+    expect(container.querySelector('.page-outline')).toBeNull();
+    expect(container.querySelector('.heading-permalink')).toBeNull();
+    navigate('/guide');
+    expect(container.querySelectorAll('.heading-permalink')).toHaveLength(3);
+  } finally {
+    Object.assign(guide, original);
+  }
+});
+
+it.each([undefined, true, false])(
+  'handles one-heading outlines with outline=%s',
+  (outline) => {
+    const guide = docsManifest.pages[1];
+    const original = { ...guide };
+    Object.assign(guide, {
+      outline,
+      html: '<h2 id="start">Start</h2>',
+      headings: [{ depth: 2, id: 'start', text: 'Start' }],
+    });
+    try {
+      navigate('/guide');
+      act(() => render(<App />, container));
+      expect(Boolean(container.querySelector('.page-outline'))).toBe(
+        outline === true,
+      );
+      expect(container.querySelector('.heading-permalink')).not.toBeNull();
+    } finally {
+      Object.assign(guide, original);
+      delete guide.outline;
+    }
+  },
+);
+
+it('shows pagination boundaries and honors page-level disabling', () => {
+  act(() => render(<App />, container));
+  expect(container.querySelector('[rel="prev"]')).toBeNull();
+  expect(container.querySelector('[rel="next"]')?.getAttribute('href')).toBe(
+    '#/guide',
+  );
+  navigate('/guide');
+  expect(container.querySelector('[rel="prev"]')?.getAttribute('href')).toBe(
+    '#/',
+  );
+  expect(container.querySelector('[rel="next"]')).toBeNull();
+  docsManifest.pages[1].pagination = false;
+  try {
+    act(() => render(<App />, container));
+    expect(container.querySelector('.pagination')).toBeNull();
+  } finally {
+    delete docsManifest.pages[1].pagination;
+  }
+  navigate('/does-not-exist');
+  expect(container.querySelector('.doc__title')?.textContent).toBe('Not found');
+  expect(container.querySelector('.pagination')).toBeNull();
+});
+
+it('scrolls the reading pane on navigation and resolves section IDs within the article', () => {
+  const guide = docsManifest.pages[1];
+  const original = { ...guide };
+  Object.assign(guide, {
+    html: '<h2 id="page-navigation">Navigation</h2>',
+    headings: [{ depth: 2, id: 'page-navigation', text: 'Navigation' }],
+  });
+  try {
+    act(() => render(<App />, container));
+    const main = container.querySelector('main');
+    const scrollTop = vi.fn();
+    Object.defineProperty(main, 'scrollTo', {
+      value: scrollTop,
+      configurable: true,
+    });
+    navigate('/guide');
+    act(() => {
+      requestFrame.mock.calls.at(-1)?.[0](0);
+    });
+    expect(scrollTop).toHaveBeenCalledWith({
+      top: 0,
+      left: 0,
+      behavior: 'auto',
+    });
+    const heading = container.querySelector('h2');
+    const scrollSection = vi.fn();
+    Object.defineProperty(heading, 'scrollIntoView', {
+      value: scrollSection,
+      configurable: true,
+    });
+    navigate('/guide#page-navigation');
+    act(() => {
+      requestFrame.mock.calls.at(-1)?.[0](0);
+    });
+    expect(scrollSection).toHaveBeenCalledWith({
+      block: 'start',
+      behavior: 'auto',
+    });
+  } finally {
+    Object.assign(guide, original);
   }
 });

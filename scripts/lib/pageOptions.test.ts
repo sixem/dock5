@@ -15,6 +15,8 @@ it('reads page navigation options from CRLF frontmatter', () => {
   });
 });
 it.each([
+  'outline: yes',
+  'pagination: 0',
   'draft: yes',
   'sidebarHidden: 1',
   'sidebarOrder: many',
@@ -24,4 +26,13 @@ it.each([
   expect(() =>
     readPageOptions(`---\n${field}\n---\n# Page`, 'guide.md'),
   ).toThrow('guide.md');
+});
+
+it('reads explicit reading controls', () => {
+  expect(
+    readPageOptions(
+      '---\noutline: false\npagination: true\n---\n# Page',
+      'guide.md',
+    ),
+  ).toEqual({ outline: false, pagination: true });
 });

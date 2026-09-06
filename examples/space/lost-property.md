@@ -1,5 +1,7 @@
 ---
 sidebarHidden: true
+outline: false
+pagination: false
 ---
 
 # Lost property beyond low Earth orbit

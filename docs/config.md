@@ -57,6 +57,11 @@ Config overrides take precedence. `sidebarHidden` keeps the page accessible by U
 `draft` removes it from the build. Exclusions accept exact paths, not globs.
 Missing internal pages and headings produce build warnings.
 
+Pages with two or more headings get an “On this page” outline. Set `outline: false`
+in frontmatter to hide it, or `outline: true` to show it even with one heading.
+Set `pagination: false` to hide previous/next links on that page. These links follow
+sidebar order and skip hidden pages. Heading permalinks remain available either way.
+
 ## Inputs
 
 - Generator input: a folder of Markdown files (default `docs/`).

@@ -2,7 +2,11 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 
 import { type DocsPage, docsManifest } from '@/docs/manifest';
-import { buildNavTree, collectAncestorKeys } from '@/docs/navTree';
+import {
+  buildNavTree,
+  collectAncestorKeys,
+  collectNavPages,
+} from '@/docs/navTree';
 import { useHashLocation } from './routing/useHashLocation';
 
 type ResolvedTheme = 'light' | 'dark';
@@ -100,7 +104,38 @@ export function App() {
     });
   }, [path]);
 
-  const currentPage = pagesBySlug.get(path) ?? pagesBySlug.get('/') ?? null;
+  const currentPage = pagesBySlug.get(path) ?? null;
+  const readingOrder = useMemo(() => collectNavPages(navTree), [navTree]);
+  const pageIndex = readingOrder.findIndex(
+    (page) => page.slug === currentPage?.slug,
+  );
+  const previousPage = pageIndex > 0 ? readingOrder[pageIndex - 1] : null;
+  const nextPage = pageIndex >= 0 ? readingOrder[pageIndex + 1] : null;
+  const showPagination =
+    currentPage?.pagination !== false && (previousPage || nextPage);
+  const showOutline =
+    currentPage &&
+    currentPage.outline !== false &&
+    currentPage.headings.length >= (currentPage.outline === true ? 1 : 2);
+  const mainRef = useRef<HTMLElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const links: HTMLAnchorElement[] = [];
+    for (const heading of contentRef.current?.querySelectorAll<HTMLElement>(
+      'h2[id], h3[id], h4[id], h5[id], h6[id]',
+    ) ?? []) {
+      const link = document.createElement('a');
+      link.className = 'heading-permalink';
+      link.href = `#${currentPage?.slug}#${encodeURIComponent(heading.id)}`;
+      link.setAttribute('aria-label', `Link to ${heading.textContent}`);
+      link.textContent = '#';
+      heading.append(link);
+      links.push(link);
+    }
+    return () => {
+      for (const link of links) link.remove();
+    };
+  }, [currentPage]);
   useEffect(() => {
     const pageTitle = currentPage?.title.trim() || 'Not found';
     document.title =
@@ -150,7 +185,9 @@ export function App() {
           }
         })();
 
-        const el = document.getElementById(decodedFragment);
+        const el = Array.from(
+          contentRef.current?.querySelectorAll<HTMLElement>('[id]') ?? [],
+        ).find((element) => element.id === decodedFragment);
         if (el) {
           el.scrollIntoView({ block: 'start', behavior: 'auto' });
           return;
@@ -161,7 +198,7 @@ export function App() {
       // - no fragment: jump to top
       // - fragment missing on navigation: also fall back to top
       if (!fragment || pathChanged) {
-        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+        mainRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
       }
     });
     return () => cancelAnimationFrame(frame);
@@ -381,7 +418,7 @@ export function App() {
           </div>
         </aside>
 
-        <main class="content">
+        <main ref={mainRef} class="content">
           <div class="content__meta">
             <div class="content__path">{currentPage?.slug ?? path}</div>
           </div>
@@ -389,12 +426,62 @@ export function App() {
           {currentPage ? (
             <article class="doc">
               <h1 class="doc__title">{currentPage.title}</h1>
+              {showOutline ? (
+                <nav class="page-outline" aria-label="On this page">
+                  <div class="page-outline__title">On this page</div>
+                  <ul>
+                    {currentPage.headings.map((heading) => (
+                      <li
+                        key={heading.id}
+                        style={{
+                          paddingInlineStart: `${(heading.depth - 2) * 12}px`,
+                        }}
+                      >
+                        <a
+                          href={`#${currentPage.slug}#${encodeURIComponent(heading.id)}`}
+                        >
+                          {heading.text}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </nav>
+              ) : null}
               <div
+                ref={contentRef}
                 class="doc__content"
                 // HTML is generated at build-time from Markdown. The generator escapes text
                 // and sanitizes URLs by default.
                 dangerouslySetInnerHTML={{ __html: currentPage.html }}
               />
+              {showPagination ? (
+                <nav class="pagination" aria-label="Page navigation">
+                  {previousPage ? (
+                    <a
+                      class="pagination__previous"
+                      rel="prev"
+                      href={`#${previousPage.slug}`}
+                    >
+                      <span>Previous</span>
+                      {docsManifest.navigation[previousPage.slug]?.label ??
+                        previousPage.sidebarLabel ??
+                        previousPage.title}
+                    </a>
+                  ) : null}
+                  {nextPage ? (
+                    <a
+                      class="pagination__next"
+                      rel="next"
+                      href={`#${nextPage.slug}`}
+                    >
+                      <span>Next</span>
+                      {docsManifest.navigation[nextPage.slug]?.label ??
+                        nextPage.sidebarLabel ??
+                        nextPage.title}
+                    </a>
+                  ) : null}
+                </nav>
+              ) : null}
             </article>
           ) : (
             <article class="doc">

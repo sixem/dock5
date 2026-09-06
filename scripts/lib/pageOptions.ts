@@ -3,6 +3,8 @@ export type PageOptions = {
   sidebarOrder?: number;
   sidebarHidden?: boolean;
   draft?: boolean;
+  outline?: boolean;
+  pagination?: boolean;
 };
 
 // These flat scalar fields use the same frontmatter convention as title.
@@ -16,7 +18,7 @@ export const readPageOptions = (
   const result: PageOptions = {};
   for (const line of block?.split(/\r?\n/) ?? []) {
     const match = line.match(
-      /^(sidebarLabel|sidebarOrder|sidebarHidden|draft):\s*(.*?)\s*$/,
+      /^(sidebarLabel|sidebarOrder|sidebarHidden|draft|outline|pagination):\s*(.*?)\s*$/,
     );
     if (!match) continue;
     const [, key, raw] = match;
@@ -30,7 +32,12 @@ export const readPageOptions = (
       if (!raw || !Number.isFinite(Number(raw)))
         throw new Error(`${source}: sidebarOrder must be a number`);
       result.sidebarOrder = Number(raw);
-    } else if (key === 'sidebarHidden' || key === 'draft') {
+    } else if (
+      key === 'sidebarHidden' ||
+      key === 'draft' ||
+      key === 'outline' ||
+      key === 'pagination'
+    ) {
       if (raw !== 'true' && raw !== 'false')
         throw new Error(`${source}: ${key} must be true or false`);
       result[key] = raw === 'true';

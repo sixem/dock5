@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import type { DocsPage } from './manifest';
-import { buildNavTree } from './navTree';
+import { buildNavTree, collectNavPages } from './navTree';
 
 const page = (slug: string, options: Partial<DocsPage> = {}): DocsPage => ({
   slug,
@@ -36,4 +36,25 @@ it('keeps children of a hidden folder page accessible without exposing its link'
   ]);
   expect(tree[0].page).toBeNull();
   expect(tree[0].children[0].page?.slug).toBe('/guides/setup');
+});
+
+it('flattens reading order with landing pages before children and skips hidden pages', () => {
+  const tree = buildNavTree(
+    [
+      page('/'),
+      page('/guides'),
+      page('/guides/b'),
+      page('/guides/a', { sidebarOrder: 1 }),
+      page('/guides/hidden', { sidebarHidden: true }),
+      page('/reference'),
+    ],
+    { '/': { order: 0 }, '/guides': { order: 1 }, '/reference': { order: 2 } },
+  );
+  expect(collectNavPages(tree).map((page) => page.slug)).toEqual([
+    '/',
+    '/guides',
+    '/guides/a',
+    '/guides/b',
+    '/reference',
+  ]);
 });

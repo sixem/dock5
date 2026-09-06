@@ -22,8 +22,11 @@ export default defineConfig(({ command }) => ({
   //
   // Keep dev on "/" because Vite's dev server assumes an absolute base.
   base: command === 'build' ? './' : '/',
+  server: {
+    watch: { usePolling: true, interval: 250 },
+  },
   plugins: [
-    preact(),
+    preact({ prefreshEnabled: false }),
     siteMetadataPlugin(manifestPath),
     process.env.DOCK5_ASSETS_DIR
       ? docsAssetsPlugin(path.resolve(process.env.DOCK5_ASSETS_DIR))

@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import { build } from 'vite';
 import { expect, it } from 'vitest';
 import { docsAssetsPlugin } from './docsAssets.ts';
-import { siteTitlePlugin } from './siteTitle.ts';
+import { siteMetadataPlugin } from './siteMetadata.ts';
 
 it('copies staged assets to a custom Vite output and replaces stale public assets', async () => {
   // Vite resolves inputs to real paths; its root must match even when TEMP is an alias.
@@ -17,13 +17,17 @@ it('copies staged assets to a custom Vite output and replaces stale public asset
     const manifestPath = path.join(root, 'manifest.json');
     await fs.writeFile(
       manifestPath,
-      JSON.stringify({ title: 'Project & </title><script>bad</script>' }),
+      JSON.stringify({
+        title: 'Project & </title><script>bad</script>',
+        description: 'Project "docs" & reference',
+        favicon: 'docs-assets/icon.svg',
+      }),
     );
     await fs.mkdir(source);
     await fs.mkdir(path.join(root, 'public/docs-assets'), { recursive: true });
     await fs.writeFile(
       path.join(root, 'index.html'),
-      '<title>dock5</title><h1>Build fixture</h1>',
+      '<title>dock5</title><link rel="icon" type="image/png" href="/icon.png"><h1>Build fixture</h1>',
     );
     await fs.writeFile(path.join(source, 'guide.pdf'), 'current asset');
     await fs.writeFile(
@@ -35,11 +39,16 @@ it('copies staged assets to a custom Vite output and replaces stale public asset
         root,
         configFile: false,
         logLevel: 'silent',
-        plugins: [docsAssetsPlugin(source), siteTitlePlugin(manifestPath)],
+        plugins: [docsAssetsPlugin(source), siteMetadataPlugin(manifestPath)],
         build: { outDir },
       });
 
     await runBuild();
+    const html = await fs.readFile(path.join(outDir, 'index.html'), 'utf8');
+    expect(html).toContain('name="description"');
+    expect(html).toContain('&quot;docs&quot;');
+    expect(html).toContain('href="docs-assets/icon.svg"');
+    expect(html).not.toContain('href="/icon.png"');
     expect(
       await fs.readFile(path.join(outDir, 'index.html'), 'utf8'),
     ).toContain(

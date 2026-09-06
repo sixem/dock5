@@ -182,12 +182,15 @@ body {
 
 .brand {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
   min-width: 0;
 }
 
 .brand__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.11em;
@@ -204,9 +207,32 @@ body {
 }
 
 .topbar__actions {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.brand__logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.header-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.header-links a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.header-links a:hover {
+  text-decoration: underline;
 }
 
 .button {
@@ -830,6 +856,14 @@ body {
 }
 
 @media (max-width: 880px) {
+  .topbar {
+    flex-wrap: wrap;
+  }
+
+  .topbar__actions {
+    flex-shrink: 1;
+    min-width: 0;
+  }
   .layout {
     grid-template-columns: 1fr;
   }

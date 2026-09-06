@@ -230,3 +230,47 @@ describe('generate (site title)', () => {
     },
   );
 });
+
+it('resolves identity assets relative to the docs folder and rejects missing files', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dock5-identity-'));
+  try {
+    const inputDir = path.join(root, 'docs');
+    const outFile = path.join(root, 'manifest.json');
+    const assetsDir = path.join(root, 'assets');
+    await fs.mkdir(path.join(inputDir, 'images'), { recursive: true });
+    await fs.writeFile(path.join(inputDir, 'index.md'), '# Root');
+    await fs.writeFile(path.join(inputDir, 'images', 'my logo.svg'), '<svg/>');
+    await fs.writeFile(path.join(inputDir, 'images', 'icon.png'), 'png');
+    await fs.writeFile(
+      path.join(inputDir, 'dock5.config.json'),
+      JSON.stringify({
+        description: 'Project docs',
+        logo: './images/my logo.svg',
+        favicon: './images/icon.png',
+        links: [
+          { label: 'GitHub', href: 'https://github.com/example/project' },
+        ],
+      }),
+    );
+    await generate({ inputDir, outFile, assetsDir, assetsBase: 'docs-assets' });
+    expect(JSON.parse(await fs.readFile(outFile, 'utf8'))).toMatchObject({
+      title: 'Root',
+      description: 'Project docs',
+      logo: 'docs-assets/images/my%20logo.svg',
+      favicon: 'docs-assets/images/icon.png',
+      links: [{ label: 'GitHub', href: 'https://github.com/example/project' }],
+    });
+    expect(
+      await fs.readFile(path.join(assetsDir, 'images', 'my logo.svg'), 'utf8'),
+    ).toBe('<svg/>');
+    await expect(
+      fs.access(path.join(assetsDir, 'dock5.config.json')),
+    ).rejects.toThrow();
+    await fs.rm(path.join(inputDir, 'images', 'icon.png'));
+    await expect(generate({ inputDir, outFile, assetsDir })).rejects.toThrow(
+      'favicon file not found',
+    );
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});

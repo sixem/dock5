@@ -18,6 +18,13 @@ Place an optional `dock5.config.json` in your docs folder to configure the site:
 
 - `title`: Site name used in the header and browser titles. Defaults to the root
   page's title, or `dock5` if there isn't one.
+- `description`: A short site description for page metadata.
+- `logo`: Image shown beside the site name.
+- `favicon`: Browser tab icon. Defaults to Dock5's icon.
+- `links`: Header links, each with a `label` and `href` (web URL, email URL, or `#/page`).
+
+Image paths are relative to the docs folder, for example `"logo": "./assets/logo.svg"`.
+All options are optional.
 
 ## Inputs
 

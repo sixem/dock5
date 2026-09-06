@@ -98,6 +98,30 @@ export function App() {
         ? docsManifest.title
         : `${pageTitle} | ${docsManifest.title}`;
   }, [currentPage?.title, docsManifest.title]);
+  useEffect(() => {
+    let description = document.querySelector<HTMLMetaElement>(
+      'meta[name="description"]',
+    );
+    if (docsManifest.description) {
+      if (!description) {
+        description = document.createElement('meta');
+        description.name = 'description';
+        document.head.append(description);
+      }
+      description.content = docsManifest.description;
+    } else {
+      description?.remove();
+    }
+    let favicon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    if (!favicon) {
+      favicon = document.createElement('link');
+      favicon.rel = 'icon';
+      document.head.append(favicon);
+    }
+    favicon.href =
+      docsManifest.favicon ?? new URL('icon.png', document.baseURI).href;
+    favicon.removeAttribute('type');
+  }, [docsManifest.description, docsManifest.favicon]);
   const previousPathRef = useRef(path);
 
   useEffect(() => {
@@ -290,11 +314,23 @@ export function App() {
     <div class="app">
       <header class="topbar">
         <div class="brand">
+          {docsManifest.logo ? (
+            <img class="brand__logo" src={docsManifest.logo} alt="" />
+          ) : null}
           <span class="brand__name">{docsManifest.title}</span>
           <span class="brand__meta">docs engine</span>
         </div>
 
         <div class="topbar__actions">
+          {docsManifest.links.length ? (
+            <nav class="header-links" aria-label="Project links">
+              {docsManifest.links.map((link) => (
+                <a key={`${link.label}:${link.href}`} href={link.href}>
+                  {link.label}
+                </a>
+              ))}
+            </nav>
+          ) : null}
           <button
             ref={settingsButtonRef}
             class="button button--icon"

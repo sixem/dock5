@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import preact from '@preact/preset-vite';
 import { defineConfig } from 'vite';
 import { docsAssetsPlugin } from './scripts/lib/docsAssets.ts';
-import { siteTitlePlugin } from './scripts/lib/siteTitle.ts';
+import { siteMetadataPlugin } from './scripts/lib/siteMetadata.ts';
 
 const srcRoot = fileURLToPath(new URL('./src', import.meta.url));
 const defaultManifestPath = fileURLToPath(
@@ -24,7 +24,7 @@ export default defineConfig(({ command }) => ({
   base: command === 'build' ? './' : '/',
   plugins: [
     preact(),
-    siteTitlePlugin(manifestPath),
+    siteMetadataPlugin(manifestPath),
     process.env.DOCK5_ASSETS_DIR
       ? docsAssetsPlugin(path.resolve(process.env.DOCK5_ASSETS_DIR))
       : null,

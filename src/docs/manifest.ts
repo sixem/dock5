@@ -3,6 +3,7 @@
 // Keeping this as a small module makes it easier to swap the generator contract later
 // (e.g. HTML/AST output) without touching the rest of the app.
 import docsManifestJson from '@/generated/docs.json';
+import type { SiteConfig } from './siteConfig';
 
 export type DocsPage = {
   slug: string;
@@ -15,7 +16,7 @@ export type DocsPage = {
   }>;
 };
 
-export type DocsManifest = {
+export type DocsManifest = Omit<SiteConfig, 'title'> & {
   title: string;
   pages: DocsPage[];
 };
@@ -36,6 +37,21 @@ export function assertIsDocsManifest(
     typeof value.title === 'string' && value.title.trim(),
     'title must be a non-empty string',
   );
+  for (const key of ['description', 'logo', 'favicon']) {
+    assert(
+      value[key] === null || typeof value[key] === 'string',
+      `${key} must be a string or null`,
+    );
+  }
+  assert(Array.isArray(value.links), 'links must be an array');
+  for (const link of value.links) {
+    assert(
+      isRecord(link) &&
+        typeof link.label === 'string' &&
+        typeof link.href === 'string',
+      'links must contain label and href strings',
+    );
+  }
   assert(Array.isArray(value.pages), 'pages must be an array');
 
   for (let i = 0; i < value.pages.length; i += 1) {

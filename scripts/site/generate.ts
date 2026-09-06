@@ -6,6 +6,7 @@ import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { parseGenerateArgs } from '../lib/args.ts';
+import { CONFIG_FILE, loadSiteConfig } from '../lib/config.ts';
 
 import type { HeadingEntry } from './markdown/compile.ts';
 import { compileMarkdown } from './markdown/compile.ts';
@@ -13,34 +14,6 @@ import { compileMarkdown } from './markdown/compile.ts';
 const DEFAULT_OUT_FILE = path.join('src', 'generated', 'docs.json');
 const DEFAULT_ASSETS_DIR = path.join('public', 'docs-assets');
 const DEFAULT_ASSETS_BASE = 'docs-assets';
-const CONFIG_FILE = 'dock5.config.json';
-
-const readSiteTitle = async (inputDir: string): Promise<string | null> => {
-  let raw: string;
-  try {
-    raw = await fs.readFile(path.join(inputDir, CONFIG_FILE), 'utf8');
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
-    throw error;
-  }
-
-  try {
-    const config: unknown = JSON.parse(raw);
-    if (!config || typeof config !== 'object' || Array.isArray(config)) {
-      throw new Error('expected an object');
-    }
-    if (!('title' in config)) return null;
-    if (typeof config.title !== 'string' || !config.title.trim()) {
-      throw new Error('title must be a non-empty string');
-    }
-    return config.title.trim();
-  } catch (error) {
-    throw new Error(
-      `Invalid ${CONFIG_FILE}: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
-};
-
 const printHelp = () => {
   // Keep this short; full docs can live in README/docs later.
   // A leading "--" separator is optional in pnpm scripts.
@@ -227,7 +200,7 @@ export const generate = async ({
 }) => {
   const absInputDir = path.resolve(inputDir);
   const absOutFile = path.resolve(outFile);
-  const configuredTitle = await readSiteTitle(absInputDir);
+  const config = await loadSiteConfig(absInputDir);
 
   const absAssetsDir = assetsDir ? path.resolve(assetsDir) : null;
   if (
@@ -283,16 +256,33 @@ export const generate = async ({
 
   pages.sort((a, b) => a.slug.localeCompare(b.slug));
 
+  const assets = await listAssetFiles(absInputDir);
+  const assetPaths = new Set(
+    assets.map((file) => toPosixRelPath(path.relative(absInputDir, file))),
+  );
+  const assetUrl = (key: 'logo' | 'favicon') => {
+    const file = config[key];
+    if (!file) return null;
+    if (!assetPaths.has(file))
+      throw new Error(
+        `Invalid ${CONFIG_FILE}: ${key} file not found or excluded: ${file}`,
+      );
+    const encoded = file.split('/').map(encodeURIComponent).join('/');
+    return assetsBase ? `${assetsBase.replace(/\/$/, '')}/${encoded}` : encoded;
+  };
   const manifest = {
+    description: config.description,
+    logo: assetUrl('logo'),
+    favicon: assetUrl('favicon'),
+    links: config.links,
     title:
-      configuredTitle ??
+      config.title ??
       (pages.find((page) => page.slug === '/')?.title.trim() || 'dock5'),
     pages,
   };
 
   let assetCount = 0;
   if (absAssetsDir && assetsBase) {
-    const assets = await listAssetFiles(absInputDir);
     for (const assetPath of assets) {
       const rel = path.relative(absInputDir, assetPath);
       const dest = path.join(absAssetsDir, rel);

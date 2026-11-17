@@ -7,7 +7,9 @@ import {
   collectAncestorKeys,
   collectNavPages,
 } from '@/docs/navTree';
+import { copyText } from './copyText';
 import { useHashLocation } from './routing/useHashLocation';
+import { ScrollOverlay } from './ScrollOverlay';
 import { Search } from './Search';
 
 type ResolvedTheme = 'light' | 'dark';
@@ -118,6 +120,34 @@ export function App() {
     currentPage &&
     currentPage.outline !== false &&
     currentPage.headings.length >= (currentPage.outline === true ? 1 : 2);
+  const renderOutline = () => (
+    <ul>
+      {currentPage?.headings.map((heading) => (
+        <li
+          key={heading.id}
+          style={{
+            paddingInlineStart: `${Math.max(0, heading.depth - 2) * 12}px`,
+          }}
+        >
+          <a
+            href={`#${currentPage.slug}#${encodeURIComponent(heading.id)}`}
+            aria-current={
+              fragment === encodeURIComponent(heading.id)
+                ? 'location'
+                : undefined
+            }
+            onClick={(event) => {
+              const details = event.currentTarget.closest('details');
+              if (details) details.open = false;
+            }}
+          >
+            {heading.text}
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+  const sidebarRef = useRef<HTMLElement | null>(null);
   const mainRef = useRef<HTMLElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -148,13 +178,28 @@ export function App() {
       button.type = 'button';
       button.textContent = 'Copy';
       button.setAttribute('aria-label', 'Copy code');
-      button.setAttribute('aria-live', 'polite');
+      const icon = document.createElement('span');
+      icon.className = 'copy-code__icon';
+      icon.setAttribute('aria-hidden', 'true');
+      const status = document.createElement('span');
+      status.className = 'visually-hidden';
+      status.setAttribute('aria-live', 'polite');
+      button.append(icon, status);
       button.onclick = async () => {
         try {
-          await navigator.clipboard.writeText(code.textContent ?? '');
-          if (active) button.textContent = 'Copied';
-        } catch {
-          if (active) button.textContent = 'Copy failed';
+          await copyText(code.textContent ?? '');
+          if (active) {
+            button.dataset.status = 'copied';
+            button.setAttribute('aria-label', 'Copied');
+            status.textContent = 'Copied';
+          }
+        } catch (error) {
+          console.warn('[copy] clipboard unavailable or denied', error);
+          if (active) {
+            button.dataset.status = 'failed';
+            button.setAttribute('aria-label', 'Copy failed');
+            status.textContent = 'Copy failed';
+          }
         }
       };
       code.parentElement?.append(button);
@@ -375,13 +420,10 @@ export function App() {
   return (
     <div class="app">
       <header class="topbar">
-        <div class="brand">
-          {docsManifest.logo ? (
-            <img class="brand__logo" src={docsManifest.logo} alt="" />
-          ) : null}
+        <a class="brand" href="#/" aria-label={`${docsManifest.title} home`}>
           <span class="brand__name">{docsManifest.title}</span>
           <span class="brand__meta">docs</span>
-        </div>
+        </a>
 
         <div class="topbar__actions">
           <Search pages={docsManifest.pages} />
@@ -397,11 +439,25 @@ export function App() {
           </button>
           {docsManifest.links.length ? (
             <nav class="header-links" aria-label="Project links">
-              {docsManifest.links.map((link) => (
-                <a key={`${link.label}:${link.href}`} href={link.href}>
-                  {link.label}
-                </a>
-              ))}
+              {docsManifest.links.map((link) =>
+                /^https?:\/\/(?:www\.)?github\.com(?:[/:?#]|$)/i.test(
+                  link.href,
+                ) ? (
+                  <a
+                    key={`${link.label}:${link.href}`}
+                    href={link.href}
+                    class="button button--icon"
+                    aria-label={link.label}
+                  >
+                    <span class="github-icon" aria-hidden="true" />
+                    <span class="visually-hidden">{link.label}</span>
+                  </a>
+                ) : (
+                  <a key={`${link.label}:${link.href}`} href={link.href}>
+                    {link.label}
+                  </a>
+                ),
+              )}
             </nav>
           ) : null}
           <button
@@ -430,96 +486,108 @@ export function App() {
       </header>
 
       <div class="layout">
-        <aside
-          id="page-navigation"
-          class={`sidebar${isNavOpen ? ' sidebar--open' : ''}`}
-          onKeyDown={(event) => {
-            if (event.key === 'Escape') {
-              setIsNavOpen(false);
-              navButtonRef.current?.focus();
-            }
-          }}
+        <div
+          class={`scroll-frame scroll-frame--sidebar${isNavOpen ? ' scroll-frame--open' : ''}`}
         >
-          <div class="sidebar__section">
-            <div class="sidebar__title">Pages</div>
-            <nav class="nav" aria-label="Pages">
-              {renderNavNodes(navTree)}
-            </nav>
-          </div>
-        </aside>
+          <aside
+            ref={sidebarRef}
+            id="page-navigation"
+            class={`sidebar${isNavOpen ? ' sidebar--open' : ''}`}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                setIsNavOpen(false);
+                navButtonRef.current?.focus();
+              }
+            }}
+          >
+            <div class="sidebar__section">
+              <div class="sidebar__title">Pages</div>
+              <nav class="nav" aria-label="Pages">
+                {renderNavNodes(navTree)}
+              </nav>
+            </div>
+          </aside>
+          <ScrollOverlay
+            viewportRef={sidebarRef}
+            controls="page-navigation"
+            label="Pages scroll position"
+          />
+        </div>
 
-        <main ref={mainRef} class="content">
-          <div class="content__meta">
-            <div class="content__path">{currentPage?.slug ?? path}</div>
-          </div>
+        <div class="scroll-frame scroll-frame--content">
+          <main ref={mainRef} id="page-content" class="content">
+            <div class="content__meta">
+              <div class="content__path">{currentPage?.slug ?? path}</div>
+            </div>
 
-          {currentPage ? (
-            <article class="doc">
-              <h1 class="doc__title">{currentPage.title}</h1>
-              {showOutline ? (
-                <nav class="page-outline" aria-label="On this page">
-                  <div class="page-outline__title">On this page</div>
-                  <ul>
-                    {currentPage.headings.map((heading) => (
-                      <li
-                        key={heading.id}
-                        style={{
-                          paddingInlineStart: `${(heading.depth - 2) * 12}px`,
-                        }}
-                      >
+            <div
+              class={`content__layout${showOutline ? ' content__layout--outline' : ''}`}
+            >
+              {currentPage ? (
+                <article class="doc">
+                  <h1 class="doc__title">{currentPage.title}</h1>
+                  {showOutline ? (
+                    <details class="page-outline-mobile">
+                      <summary>On this page</summary>
+                      <nav aria-label="On this page">{renderOutline()}</nav>
+                    </details>
+                  ) : null}
+                  <div
+                    ref={contentRef}
+                    class="doc__content"
+                    // HTML is generated at build-time from Markdown. The generator escapes text
+                    // and sanitizes URLs by default.
+                    dangerouslySetInnerHTML={{ __html: currentPage.html }}
+                  />
+                  {showPagination ? (
+                    <nav class="pagination" aria-label="Page navigation">
+                      {previousPage ? (
                         <a
-                          href={`#${currentPage.slug}#${encodeURIComponent(heading.id)}`}
+                          class="pagination__previous"
+                          rel="prev"
+                          href={`#${previousPage.slug}`}
                         >
-                          {heading.text}
+                          <span>Previous</span>
+                          {docsManifest.navigation[previousPage.slug]?.label ??
+                            previousPage.sidebarLabel ??
+                            previousPage.title}
                         </a>
-                      </li>
-                    ))}
-                  </ul>
-                </nav>
-              ) : null}
-              <div
-                ref={contentRef}
-                class="doc__content"
-                // HTML is generated at build-time from Markdown. The generator escapes text
-                // and sanitizes URLs by default.
-                dangerouslySetInnerHTML={{ __html: currentPage.html }}
-              />
-              {showPagination ? (
-                <nav class="pagination" aria-label="Page navigation">
-                  {previousPage ? (
-                    <a
-                      class="pagination__previous"
-                      rel="prev"
-                      href={`#${previousPage.slug}`}
-                    >
-                      <span>Previous</span>
-                      {docsManifest.navigation[previousPage.slug]?.label ??
-                        previousPage.sidebarLabel ??
-                        previousPage.title}
-                    </a>
+                      ) : null}
+                      {nextPage ? (
+                        <a
+                          class="pagination__next"
+                          rel="next"
+                          href={`#${nextPage.slug}`}
+                        >
+                          <span>Next</span>
+                          {docsManifest.navigation[nextPage.slug]?.label ??
+                            nextPage.sidebarLabel ??
+                            nextPage.title}
+                        </a>
+                      ) : null}
+                    </nav>
                   ) : null}
-                  {nextPage ? (
-                    <a
-                      class="pagination__next"
-                      rel="next"
-                      href={`#${nextPage.slug}`}
-                    >
-                      <span>Next</span>
-                      {docsManifest.navigation[nextPage.slug]?.label ??
-                        nextPage.sidebarLabel ??
-                        nextPage.title}
-                    </a>
-                  ) : null}
-                </nav>
+                </article>
+              ) : (
+                <article class="doc">
+                  <h1 class="doc__title">Not found</h1>
+                  <p class="doc__text">No page matches: {path}</p>
+                </article>
+              )}
+              {showOutline ? (
+                <aside class="page-outline" aria-label="On this page">
+                  <div class="page-outline__title">On this page</div>
+                  <nav aria-label="On this page">{renderOutline()}</nav>
+                </aside>
               ) : null}
-            </article>
-          ) : (
-            <article class="doc">
-              <h1 class="doc__title">Not found</h1>
-              <p class="doc__text">No page matches: {path}</p>
-            </article>
-          )}
-        </main>
+            </div>
+          </main>
+          <ScrollOverlay
+            viewportRef={mainRef}
+            controls="page-content"
+            label="Content scroll position"
+          />
+        </div>
       </div>
 
       {isSettingsOpen ? (

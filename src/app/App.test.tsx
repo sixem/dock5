@@ -50,9 +50,12 @@ it('uses the site name in the header and updates the tab title on navigation', (
   expect(container.querySelector('.brand__name')?.textContent).toBe(
     'My Project',
   );
-  expect(container.querySelector('.brand__logo')?.getAttribute('src')).toBe(
-    'docs-assets/logo.svg',
-  );
+  expect(container.querySelector('.brand img')).toBeNull();
+  expect(container.querySelector('.brand')?.getAttribute('href')).toBe('#/');
+  expect(
+    container.querySelector('.header-links a')?.getAttribute('aria-label'),
+  ).toBe('GitHub');
+  expect(container.querySelector('.header-links .github-icon')).not.toBeNull();
   expect(container.querySelector('.header-links a')?.getAttribute('href')).toBe(
     'https://github.com/example/project',
   );
@@ -236,6 +239,16 @@ it('links the outline and heading permalinks to unique sections across navigatio
         link.getAttribute('href'),
       ),
     ).toEqual(['#/guide#arrival', '#/guide#check-in', '#/guide#arrival-2']);
+    const mobileOutline = container.querySelector<HTMLDetailsElement>(
+      '.page-outline-mobile',
+    );
+    expect(mobileOutline?.open).toBe(false);
+    expect(mobileOutline?.querySelectorAll('a')).toHaveLength(3);
+    if (mobileOutline) mobileOutline.open = true;
+    act(() => {
+      mobileOutline?.querySelector<HTMLAnchorElement>('a')?.click();
+    });
+    expect(mobileOutline?.open).toBe(false);
     expect(
       container.querySelector('h2#arrival-2 a')?.getAttribute('href'),
     ).toBe('#/guide#arrival-2');
@@ -346,6 +359,7 @@ it('copies the original code text and reports clipboard failures', async () => {
   const guide = docsManifest.pages[1];
   const original = { ...guide };
   const clipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+  vi.spyOn(console, 'warn').mockImplementation(() => {});
   const writeText = vi.fn().mockResolvedValue(undefined);
   Object.defineProperty(navigator, 'clipboard', {
     configurable: true,
@@ -362,13 +376,15 @@ it('copies the original code text and reports clipboard failures', async () => {
       await Promise.resolve();
     });
     expect(writeText).toHaveBeenCalledWith('const x = "<tag>";\n');
-    expect(button?.textContent).toBe('Copied');
+    expect(button?.getAttribute('aria-label')).toBe('Copied');
+    expect(button?.dataset.status).toBe('copied');
     writeText.mockRejectedValueOnce(new Error('Denied'));
     await act(async () => {
       button?.click();
       await Promise.resolve();
     });
-    expect(button?.textContent).toBe('Copy failed');
+    expect(button?.getAttribute('aria-label')).toBe('Copy failed');
+    expect(button?.dataset.status).toBe('failed');
     navigate('/');
     expect(container.querySelector('.copy-code')).toBeNull();
   } finally {

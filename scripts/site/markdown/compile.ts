@@ -83,13 +83,16 @@ export const compileMarkdown = (
   // Keep the existing small HTML compatibility surface; never render arbitrary raw HTML.
   md.renderer.rules.html_inline = (tokens, index) => {
     const raw = tokens[index].content;
+    if (/^<!--[\s\S]*?-->$/.test(raw)) return '';
     if (/^<a\b/i.test(raw))
       return `<a href="${escapeAttr(rewriteHref(extractHtmlAttr(raw, 'href') ?? '', ctx, { hashShorthand: 'route' }))}">`;
     if (/^<\/a\s*>$/i.test(raw)) return '</a>';
     return parseInlineHtml(raw, ctx);
   };
   md.renderer.rules.html_block = (tokens, index) => {
-    const lines = tokens[index].content.split('\n');
+    const lines = tokens[index].content
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .split('\n');
     const output: string[] = [];
     for (let i = 0; i < lines.length; ) {
       const block = parseHtmlBlock(lines, i);
@@ -139,7 +142,7 @@ export const compileMarkdown = (
     renderer,
   ) => {
     const token = tokens[index];
-    const text = plainText(tokens[index + 1]?.children ?? []);
+    const text = plainText(tokens[index + 1]?.children ?? []).trim();
     const depth = Number(token.tag.slice(1));
     const id = headingId(text);
     if (depth === 1 && !skippedTitle && token.level === 0) {
@@ -153,6 +156,10 @@ export const compileMarkdown = (
     if (depth >= 2) headings.push({ depth, id, text });
     return renderer.renderToken(tokens, index, settings);
   };
+  // Keep wide tables independently scrollable without changing table layout.
+  md.renderer.rules.table_open = () =>
+    '<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>';
+  md.renderer.rules.table_close = () => '</table></div>\n';
   // Normalize table style spacing for the existing generated HTML contract.
   for (const tag of ['th_open', 'td_open'])
     md.renderer.rules[tag] = (tokens, index, settings, _env, renderer) => {

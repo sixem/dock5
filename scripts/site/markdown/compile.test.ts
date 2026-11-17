@@ -29,7 +29,9 @@ describe('compileMarkdown (tables)', () => {
     );
 
     expect(result.html).toContain('<p>Intro</p>');
-    expect(result.html).toContain('<table>');
+    expect(result.html).toContain(
+      '<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>',
+    );
     expect(result.html).toContain('<thead>');
     expect(result.html).toContain('<th');
     expect(result.html).toContain('A');
@@ -68,6 +70,40 @@ describe('compileMarkdown (tables)', () => {
 });
 
 describe('compileMarkdown (html blocks)', () => {
+  it('omits HTML comments while preserving comments in code', () => {
+    const result = compile(
+      [
+        '## Feedback <!-- {docsify-ignore} -->',
+        '',
+        '<!-- hidden',
+        'comment -->',
+        '',
+        '`<!-- visible -->`',
+        '',
+        '```html',
+        '<!-- code -->',
+        '```',
+      ].join('\n'),
+    );
+
+    expect(result.html).toContain('<h2 id="feedback">Feedback </h2>');
+    expect(result.html).not.toContain('docsify-ignore');
+    expect(result.html).not.toContain('hidden');
+    expect(result.html).toContain('&lt;!-- visible --&gt;');
+    expect(result.html).toContain('&lt;!-- code --&gt;');
+    expect(result.headings).toContainEqual({
+      depth: 2,
+      id: 'feedback',
+      text: 'Feedback',
+    });
+  });
+
+  it('renders escaped HTML entities as text without double escaping', () => {
+    const result = compile('| Content |\n| --- |\n| Into the &lt;head&gt; |');
+    expect(result.html).toContain('Into the &lt;head&gt;');
+    expect(result.html).not.toContain('&amp;lt;');
+  });
+
   it('skips an HTML <h1> title (text)', () => {
     const result = compile(
       [

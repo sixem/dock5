@@ -380,7 +380,7 @@ export function App() {
             <img class="brand__logo" src={docsManifest.logo} alt="" />
           ) : null}
           <span class="brand__name">{docsManifest.title}</span>
-          <span class="brand__meta">docs engine</span>
+          <span class="brand__meta">docs</span>
         </div>
 
         <div class="topbar__actions">

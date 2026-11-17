@@ -55,6 +55,7 @@ export const searchDocs = (
 ): SearchResult[] => {
   const terms = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
   if (!terms.length) return [];
+  const phrase = terms.join(' ');
   return index
     .map((entry) => {
       const title = entry.title.toLocaleLowerCase();
@@ -70,6 +71,8 @@ export const searchDocs = (
           (text.includes(term) ? 1 : 0),
         0,
       );
+      const exact =
+        !section && title === phrase ? 2 : Number(section === phrase);
       const firstMatch = Math.min(
         ...terms
           .map((term) => text.indexOf(term))
@@ -79,9 +82,11 @@ export const searchDocs = (
         ? Math.max(0, firstMatch - 45)
         : 0;
       const excerpt = `${start ? '…' : ''}${entry.text.slice(start, start + 160)}${entry.text.length > start + 160 ? '…' : ''}`;
-      return { ...entry, score, excerpt };
+      return { ...entry, exact, score, excerpt };
     })
     .filter((entry) => entry !== null)
-    .sort((a, b) => b.score - a.score || a.href.localeCompare(b.href))
-    .slice(0, 20);
+    .sort(
+      (a, b) =>
+        b.exact - a.exact || b.score - a.score || a.href.localeCompare(b.href),
+    );
 };

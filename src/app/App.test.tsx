@@ -355,11 +355,82 @@ it('scrolls the reading pane on navigation and resolves section IDs within the a
   }
 });
 
+it('restores scroll positions per history entry, including repeated URLs', () => {
+  act(() => render(<App />, container));
+  const main = container.querySelector('main');
+  if (!main) throw new Error('Missing main viewport');
+  const home = history.state;
+  const scrollTo = vi.spyOn(main, 'scrollTo');
+  main.scrollTop = 115;
+  navigate('/guide');
+  const guide = history.state;
+  main.scrollTop = 370;
+  navigate('/');
+  expect(history.state).not.toEqual(home);
+  act(() => requestFrame.mock.calls.at(-1)?.[0](0));
+  expect(scrollTo).toHaveBeenLastCalledWith({
+    top: 0,
+    left: 0,
+    behavior: 'auto',
+  });
+  for (const [entry, hash, top] of [
+    [guide, '#/guide', 370],
+    [home, '#/', 115],
+  ] as const) {
+    act(() => {
+      history.replaceState(entry, '', hash);
+      window.dispatchEvent(new Event('hashchange'));
+    });
+    act(() => requestFrame.mock.calls.at(-1)?.[0](0));
+    expect(scrollTo).toHaveBeenLastCalledWith({
+      top,
+      left: 0,
+      behavior: 'auto',
+    });
+  }
+});
+
+it('updates both outlines on article scroll without changing the section URL', () => {
+  const page = docsManifest.pages[1];
+  const original = { ...page };
+  try {
+    Object.assign(page, {
+      html: '<h2 id="first">First</h2><h2 id="second">Second</h2>',
+      headings: ['first', 'second'].map((id) => ({ depth: 2, id, text: id })),
+    });
+    navigate('/guide#first');
+    act(() => render(<App />, container));
+    const main = container.querySelector('main');
+    if (!main) throw new Error('Missing main viewport');
+    const second = container.querySelector('#second');
+    if (!second) throw new Error('Missing second heading');
+    const bounds = vi.spyOn(second, 'getBoundingClientRect');
+    for (const [top, id] of [
+      [200, 'first'],
+      [20, 'second'],
+    ] as const) {
+      bounds.mockReturnValue(new DOMRect(0, top, 100, 20));
+      act(() => {
+        main.dispatchEvent(new Event('scroll'));
+      });
+      act(() => requestFrame.mock.calls.at(-1)?.[0](0));
+      const links = container.querySelectorAll('[aria-current="location"]');
+      expect(Array.from(links, (link) => link.getAttribute('href'))).toEqual(
+        Array(2).fill(`#/guide#${id}`),
+      );
+      expect(location.hash).toBe('#/guide#first');
+    }
+  } finally {
+    Object.assign(page, original);
+  }
+});
+
 it('copies the original code text and reports clipboard failures', async () => {
   const guide = docsManifest.pages[1];
   const original = { ...guide };
   const clipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
   vi.spyOn(console, 'warn').mockImplementation(() => {});
+  vi.useFakeTimers();
   const writeText = vi.fn().mockResolvedValue(undefined);
   Object.defineProperty(navigator, 'clipboard', {
     configurable: true,
@@ -371,6 +442,9 @@ it('copies the original code text and reports clipboard failures', async () => {
     navigate('/guide');
     act(() => render(<App />, container));
     const button = container.querySelector<HTMLButtonElement>('.copy-code');
+    expect(button?.textContent).toBe('');
+    expect(button?.querySelector('.copy-code__icon')).not.toBeNull();
+    expect(button?.getAttribute('aria-label')).toBe('Copy code');
     await act(async () => {
       button?.click();
       await Promise.resolve();
@@ -378,6 +452,11 @@ it('copies the original code text and reports clipboard failures', async () => {
     expect(writeText).toHaveBeenCalledWith('const x = "<tag>";\n');
     expect(button?.getAttribute('aria-label')).toBe('Copied');
     expect(button?.dataset.status).toBe('copied');
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
+    expect(button?.getAttribute('aria-label')).toBe('Copy code');
+    expect(button?.dataset.status).toBeUndefined();
     writeText.mockRejectedValueOnce(new Error('Denied'));
     await act(async () => {
       button?.click();
@@ -388,6 +467,7 @@ it('copies the original code text and reports clipboard failures', async () => {
     navigate('/');
     expect(container.querySelector('.copy-code')).toBeNull();
   } finally {
+    vi.useRealTimers();
     Object.assign(guide, original);
     if (clipboard) Object.defineProperty(navigator, 'clipboard', clipboard);
     else Reflect.deleteProperty(navigator, 'clipboard');

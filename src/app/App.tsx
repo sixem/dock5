@@ -8,6 +8,7 @@ import {
   collectNavPages,
 } from '@/docs/navTree';
 import { copyText } from './copyText';
+import { useActiveHeading } from './routing/useActiveHeading';
 import { useHashLocation } from './routing/useHashLocation';
 import { ScrollOverlay } from './ScrollOverlay';
 import { Search } from './Search';
@@ -51,7 +52,10 @@ function loadThemePreference(): ThemePreference {
 }
 
 export function App() {
-  const { path, fragment } = useHashLocation();
+  const mainRef = useRef<HTMLElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const route = useHashLocation(mainRef);
+  const { path, fragment } = route;
 
   const pagesBySlug = useMemo(() => {
     const map = new Map<string, DocsPage>();
@@ -120,6 +124,11 @@ export function App() {
     currentPage &&
     currentPage.outline !== false &&
     currentPage.headings.length >= (currentPage.outline === true ? 1 : 2);
+  const activeHeading = useActiveHeading(
+    mainRef,
+    contentRef,
+    showOutline ? currentPage : null,
+  );
   const renderOutline = () => (
     <ul>
       {currentPage?.headings.map((heading) => (
@@ -131,11 +140,7 @@ export function App() {
         >
           <a
             href={`#${currentPage.slug}#${encodeURIComponent(heading.id)}`}
-            aria-current={
-              fragment === encodeURIComponent(heading.id)
-                ? 'location'
-                : undefined
-            }
+            aria-current={activeHeading === heading.id ? 'location' : undefined}
             onClick={(event) => {
               const details = event.currentTarget.closest('details');
               if (details) details.open = false;
@@ -147,9 +152,46 @@ export function App() {
       ))}
     </ul>
   );
+  const backdropRef = useRef<HTMLButtonElement>(null);
   const sidebarRef = useRef<HTMLElement | null>(null);
-  const mainRef = useRef<HTMLElement | null>(null);
-  const contentRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!isNavOpen) return;
+    const sidebar = sidebarRef.current;
+    const first =
+      sidebar?.querySelector<HTMLElement>('[aria-current="page"]') ??
+      sidebar?.querySelector<HTMLElement>('a, button');
+    first?.focus();
+
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      setIsNavOpen(false);
+      navButtonRef.current?.focus({ preventScroll: true });
+    };
+    const leaveMenu = (event: FocusEvent) => {
+      const target = event.target;
+      if (
+        target instanceof Node &&
+        target !== navButtonRef.current &&
+        !sidebar?.parentElement?.contains(target) &&
+        target !== backdropRef.current
+      ) {
+        setIsNavOpen(false);
+      }
+    };
+    const mobile = window.matchMedia('(max-width: 880px)');
+    const onResize = () => {
+      if (!mobile.matches) setIsNavOpen(false);
+    };
+    mobile.addEventListener('change', onResize);
+    document.addEventListener('keydown', onEscape);
+    document.addEventListener('focusin', leaveMenu);
+    return () => {
+      mobile.removeEventListener('change', onResize);
+      document.removeEventListener('keydown', onEscape);
+      document.removeEventListener('focusin', leaveMenu);
+    };
+  }, [isNavOpen]);
   useEffect(() => {
     const links: HTMLAnchorElement[] = [];
     for (const heading of contentRef.current?.querySelectorAll<HTMLElement>(
@@ -169,6 +211,7 @@ export function App() {
   }, [currentPage]);
   useEffect(() => {
     const buttons: HTMLButtonElement[] = [];
+    const cancelTimers: Array<() => void> = [];
     let active = true;
     for (const code of contentRef.current?.querySelectorAll<HTMLElement>(
       'pre > code',
@@ -176,29 +219,50 @@ export function App() {
       const button = document.createElement('button');
       button.className = 'copy-code';
       button.type = 'button';
-      button.textContent = 'Copy';
       button.setAttribute('aria-label', 'Copy code');
       const icon = document.createElement('span');
-      icon.className = 'copy-code__icon';
+      icon.className = 'copy-code__icon copy-code__icon--copy';
       icon.setAttribute('aria-hidden', 'true');
+      const check = document.createElement('span');
+      check.className = 'copy-code__icon copy-code__icon--check';
+      check.setAttribute('aria-hidden', 'true');
       const status = document.createElement('span');
       status.className = 'visually-hidden';
       status.setAttribute('aria-live', 'polite');
-      button.append(icon, status);
+      button.append(icon, check, status);
+      let resetTimer: number | undefined;
+      let request = 0;
+      const clearReset = () => {
+        if (resetTimer !== undefined) window.clearTimeout(resetTimer);
+        resetTimer = undefined;
+      };
+      cancelTimers.push(clearReset);
+      const scheduleReset = () => {
+        resetTimer = window.setTimeout(() => {
+          delete button.dataset.status;
+          button.setAttribute('aria-label', 'Copy code');
+          status.textContent = '';
+          resetTimer = undefined;
+        }, 2000);
+      };
       button.onclick = async () => {
+        clearReset();
+        const currentRequest = ++request;
         try {
           await copyText(code.textContent ?? '');
-          if (active) {
+          if (active && request === currentRequest) {
             button.dataset.status = 'copied';
             button.setAttribute('aria-label', 'Copied');
             status.textContent = 'Copied';
+            scheduleReset();
           }
         } catch (error) {
           console.warn('[copy] clipboard unavailable or denied', error);
-          if (active) {
+          if (active && request === currentRequest) {
             button.dataset.status = 'failed';
             button.setAttribute('aria-label', 'Copy failed');
             status.textContent = 'Copy failed';
+            scheduleReset();
           }
         }
       };
@@ -207,6 +271,7 @@ export function App() {
     }
     return () => {
       active = false;
+      for (const cancel of cancelTimers) cancel();
       for (const button of buttons) button.remove();
     };
   }, [currentPage]);
@@ -248,24 +313,56 @@ export function App() {
     const pathChanged = previousPath !== path;
     previousPathRef.current = path;
 
+    const viewport = mainRef.current;
+    let section: HTMLElement | undefined;
+    if (fragment) {
+      let id = fragment;
+      try {
+        id = decodeURIComponent(fragment);
+      } catch {
+        // Handwritten URLs may contain a literal percent sign.
+      }
+      section = Array.from(
+        contentRef.current?.querySelectorAll<HTMLElement>('[id]') ?? [],
+      ).find((element) => element.id === id);
+    }
+    // Following the current hash again produces no hashchange event.
+    const followCurrentSection = (event: MouseEvent) => {
+      if (
+        !section ||
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.metaKey ||
+        event.altKey
+      )
+        return;
+      const link =
+        event.target instanceof Element
+          ? event.target.closest<HTMLAnchorElement>('a[href]')
+          : null;
+      if (link && !link.target && link.href === location.href) {
+        event.preventDefault();
+        section.scrollIntoView({ block: 'start', behavior: 'auto' });
+      }
+    };
+    viewport?.addEventListener('click', followCurrentSection);
+
     // Defer to ensure the new page content is in the DOM.
     const frame = requestAnimationFrame(() => {
-      if (fragment) {
-        const decodedFragment = (() => {
-          try {
-            return decodeURIComponent(fragment);
-          } catch {
-            return fragment;
-          }
-        })();
+      if (route.restoredTop !== undefined) {
+        mainRef.current?.scrollTo({
+          top: route.restoredTop,
+          left: 0,
+          behavior: 'auto',
+        });
+        return;
+      }
 
-        const el = Array.from(
-          contentRef.current?.querySelectorAll<HTMLElement>('[id]') ?? [],
-        ).find((element) => element.id === decodedFragment);
-        if (el) {
-          el.scrollIntoView({ block: 'start', behavior: 'auto' });
-          return;
-        }
+      if (section) {
+        section.scrollIntoView({ block: 'start', behavior: 'auto' });
+        return;
       }
 
       // Standard SPA behavior:
@@ -275,8 +372,11 @@ export function App() {
         mainRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
       }
     });
-    return () => cancelAnimationFrame(frame);
-  }, [path, currentPage?.slug, fragment]);
+    return () => {
+      cancelAnimationFrame(frame);
+      viewport?.removeEventListener('click', followCurrentSection);
+    };
+  }, [route, path, fragment]);
 
   useEffect(() => {
     if (!isSettingsOpen) return;
@@ -393,6 +493,7 @@ export function App() {
 
             {node.page ? (
               <a
+                aria-current={isActive ? 'page' : undefined}
                 class={resolvedLinkClass}
                 href={`#${node.page.slug}`}
                 onClick={() => setIsNavOpen(false)}
@@ -486,6 +587,19 @@ export function App() {
       </header>
 
       <div class="layout">
+        {isNavOpen && (
+          <button
+            ref={backdropRef}
+            type="button"
+            tabIndex={-1}
+            class="nav-backdrop"
+            aria-label="Close pages menu"
+            onClick={() => {
+              setIsNavOpen(false);
+              navButtonRef.current?.focus({ preventScroll: true });
+            }}
+          />
+        )}
         <div
           class={`scroll-frame scroll-frame--sidebar${isNavOpen ? ' scroll-frame--open' : ''}`}
         >
@@ -493,12 +607,6 @@ export function App() {
             ref={sidebarRef}
             id="page-navigation"
             class={`sidebar${isNavOpen ? ' sidebar--open' : ''}`}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') {
-                setIsNavOpen(false);
-                navButtonRef.current?.focus();
-              }
-            }}
           >
             <div class="sidebar__section">
               <div class="sidebar__title">Pages</div>
@@ -514,7 +622,7 @@ export function App() {
           />
         </div>
 
-        <div class="scroll-frame scroll-frame--content">
+        <div class="scroll-frame scroll-frame--content" inert={isNavOpen}>
           <main ref={mainRef} id="page-content" class="content">
             <div class="content__meta">
               <div class="content__path">{currentPage?.slug ?? path}</div>

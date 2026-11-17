@@ -49,3 +49,11 @@ it('keeps words joined across inline formatting', () => {
     'Moonlight and stars.',
   );
 });
+
+it('puts exact page and section names ahead of partial matches', () => {
+  const index = buildSearchIndex(pages);
+  expect(searchDocs(index, 'moon travel')[0].href).toBe('#/travel');
+  expect(searchDocs(index.reverse(), 'arrival')[0].href).toBe(
+    '#/travel#arrival',
+  );
+});

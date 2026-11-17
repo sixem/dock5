@@ -1,5 +1,6 @@
 // Tiny hash-router hook: enough for a static-host-friendly SPA (no backend rewrites).
-import { useEffect, useState } from 'preact/hooks';
+import type { RefObject } from 'preact';
+import { useLayoutEffect, useState } from 'preact/hooks';
 
 function normalizeLocation(raw: string): {
   path: string;
@@ -29,17 +30,42 @@ function normalizeLocation(raw: string): {
   return { path: normalizedPath || '/', fragment: rawFragment };
 }
 
-export function useHashLocation() {
-  const [state, setState] = useState(() =>
-    normalizeLocation(globalThis.location?.hash ?? ''),
-  );
+// A URL can occur several times in history, each at a different reading position.
+function historyEntry(): string {
+  const existing = history.state?.dock5Entry;
+  if (typeof existing === 'string') return existing;
 
-  useEffect(() => {
-    const onChange = () =>
-      setState(normalizeLocation(globalThis.location?.hash ?? ''));
-    globalThis.addEventListener('hashchange', onChange);
-    return () => globalThis.removeEventListener('hashchange', onChange);
-  }, []);
+  const id = crypto.getRandomValues(new Uint32Array(4)).join('-');
+  history.replaceState({ ...history.state, dock5Entry: id }, '');
+  return id;
+}
+
+export function useHashLocation(viewport: RefObject<HTMLElement>) {
+  const [state, setState] = useState(() => ({
+    ...normalizeLocation(location.hash),
+    restoredTop: undefined as number | undefined,
+  }));
+
+  useLayoutEffect(() => {
+    const positions = new Map<string, number>();
+    let entry = historyEntry();
+    const previousRestoration = history.scrollRestoration;
+    history.scrollRestoration = 'manual';
+
+    const onChange = () => {
+      if (viewport.current) positions.set(entry, viewport.current.scrollTop);
+      entry = historyEntry();
+      setState({
+        ...normalizeLocation(location.hash),
+        restoredTop: positions.get(entry),
+      });
+    };
+    window.addEventListener('hashchange', onChange);
+    return () => {
+      window.removeEventListener('hashchange', onChange);
+      history.scrollRestoration = previousRestoration;
+    };
+  }, [viewport]);
 
   return state;
 }

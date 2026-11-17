@@ -2,6 +2,8 @@ import { useMemo, useState } from 'preact/hooks';
 import type { DocsPage } from '@/docs/manifest';
 import { buildSearchIndex, searchDocs } from '@/docs/search';
 
+const resultLimit = 20;
+
 export function Search({ pages }: { pages: DocsPage[] }) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -9,6 +11,7 @@ export function Search({ pages }: { pages: DocsPage[] }) {
     typeof buildSearchIndex
   > | null>(null);
   const results = useMemo(() => searchDocs(index ?? [], query), [index, query]);
+  const visible = results.slice(0, resultLimit);
   return (
     <div
       class="search"
@@ -42,7 +45,7 @@ export function Search({ pages }: { pages: DocsPage[] }) {
               ?.querySelector<HTMLAnchorElement>('.search__results a')
               ?.focus();
           }
-          if (event.key === 'Enter' && results[0]) {
+          if (open && event.key === 'Enter' && results[0]) {
             location.hash = results[0].href;
             setOpen(false);
           }
@@ -54,6 +57,23 @@ export function Search({ pages }: { pages: DocsPage[] }) {
           class="search__results"
           id="search-results"
           onKeyDown={(event) => {
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+              const links = Array.from(
+                event.currentTarget.querySelectorAll<HTMLAnchorElement>('li a'),
+              );
+              const index = links.indexOf(
+                document.activeElement as HTMLAnchorElement,
+              );
+              if (index < 0) return;
+              event.preventDefault();
+              if (index === 0 && event.key === 'ArrowUp') {
+                event.currentTarget.parentElement
+                  ?.querySelector('input')
+                  ?.focus();
+              } else {
+                links[index + (event.key === 'ArrowDown' ? 1 : -1)]?.focus();
+              }
+            }
             if (event.key === 'Escape') {
               event.currentTarget.parentElement
                 ?.querySelector<HTMLInputElement>('input')
@@ -63,12 +83,14 @@ export function Search({ pages }: { pages: DocsPage[] }) {
           }}
         >
           <p role="status">
-            {results.length
-              ? `${results.length} result${results.length === 1 ? '' : 's'}`
-              : 'No results'}
+            {results.length > resultLimit
+              ? `Showing ${resultLimit} of ${results.length} results`
+              : results.length
+                ? `${results.length} result${results.length === 1 ? '' : 's'}`
+                : 'No results'}
           </p>
           <ul>
-            {results.map((result) => (
+            {visible.map((result) => (
               <li key={result.href}>
                 <a href={result.href} onClick={() => setOpen(false)}>
                   <strong>
